@@ -48,10 +48,7 @@ python ~/lerobot/lerobot/scripts/control_robot.py \
   --control.type=teleoperate
 
 # check camera connection & setting
-python scripts/eval_gr00t_so100.py \
- --host localhost \
- --port 5555 \
- --cam_idx 0
+python scripts/eval_gr00t_so100.py --cam_idx 0
 
 # manipulate so100 by GR000T
 python scripts/eval_gr00t_so100.py \

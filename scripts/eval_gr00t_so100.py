@@ -38,10 +38,15 @@ from service import ExternalRobotInferenceClient
 # Import tqdm for progress bar
 from tqdm import tqdm
 
+
+
 #################################################################################
 
 
 class SO100Robot:
+    FIX_STATE = True 
+    ERROR = torch.tensor([-90.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
     def __init__(self, calibrate=False, enable_camera=False, cam_idx=9):
         self.config = So100RobotConfig()
         self.calibrate = calibrate
@@ -127,7 +132,7 @@ class SO100Robot:
         # print all keys of the observation
         # print("observation keys:", self.robot.capture_observation().keys())
         current_state = torch.tensor([90, 90, 90, 90, -70, 30])
-        self.robot.send_action(current_state)
+        self.set_target_state(current_state)
         time.sleep(2)
         print("-------------------------------- moving to initial pose")
 
@@ -142,7 +147,7 @@ class SO100Robot:
         return self.robot.capture_observation()
 
     def get_current_state(self):
-        return self.get_observation()["observation.state"].data.numpy()
+        return self.reverse_state(self.get_observation()["observation.state"].data.numpy())
 
     def get_current_img(self):
         img = self.get_observation()["observation.images.webcam"].data.numpy()
@@ -151,6 +156,7 @@ class SO100Robot:
         return img
 
     def set_target_state(self, target_state: torch.Tensor):
+        target_state = self.fix_state(target_state)
         self.robot.send_action(target_state)
 
     def enable(self):
@@ -167,6 +173,22 @@ class SO100Robot:
 
     def __del__(self):
         self.disconnect()
+
+    def fix_state(self, state: torch.Tensor):
+        """データセットは、shoulder_panが-90ズレているためを補正する"""
+        if self.FIX_STATE:
+            state = torch.tensor(state) + self.ERROR
+            return state
+        else:
+            return state
+
+    def reverse_state(self, state: torch.Tensor):
+        """データセットは、shoulder_panが-90ズレているためを補正する"""
+        if self.FIX_STATE:
+            state = torch.tensor(state) - self.ERROR
+            return state
+        else:
+            return state
 
 
 #################################################################################
@@ -185,6 +207,7 @@ class Gr00tRobotInferenceClient:
         self.policy = ExternalRobotInferenceClient(host=host, port=port)
 
     def get_action(self, img, state):
+        state = np.array(state)
         obs_dict = {
             "video.webcam": img[np.newaxis, :, :, :],
             "state.single_arm": state[:5][np.newaxis, :].astype(np.float64),
@@ -224,7 +247,7 @@ def view_img(img, img2=None):
     plt.clf()  # Clear the figure for the next frame
 
 
-#################################################################################
+
 
 if __name__ == "__main__":
     import argparse
@@ -233,15 +256,13 @@ if __name__ == "__main__":
     
     default_dataset_path = Path(__file__).parent.parent.joinpath("datasets", "so100_strawberry_grape")
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--use_policy", action="store_true"
-    )  # default is to playback the provided dataset
+    parser.add_argument("--use_policy", action="store_true", default=False)  # default is to playback the provided dataset
     parser.add_argument("--dataset_path", type=str, default=default_dataset_path)
-    parser.add_argument("--host", type=str, default="10.110.17.183")
+    parser.add_argument("--host", type=str, default="localhost")
     parser.add_argument("--port", type=int, default=5555)
-    parser.add_argument("--action_horizon", type=int, default=12)
+    parser.add_argument("--action_horizon", type=int, default=9)
     parser.add_argument("--actions_to_execute", type=int, default=350)
-    parser.add_argument("--cam_idx", type=int, default=1)
+    parser.add_argument("--cam_idx", type=int, default=0)
     parser.add_argument(
         "--lang_instruction", type=str, default="Pick up the fruits and place them on the plate."
     )
@@ -318,7 +339,6 @@ if __name__ == "__main__":
                 img = dataset[i]["observation.images.webcam"].data.numpy()
                 # original shape (3, 480, 640) for image data
                 realtime_img = robot.get_current_img()
-
                 img = img.transpose(1, 2, 0)
                 view_img(img, realtime_img)
                 actions.append(action)
