@@ -1,0 +1,28 @@
+# docker/docker-compose.yml
+version: '3.8'
+
+services:
+  ros2_dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VNC_PASSWORD: ${VNC_PASSWORD}  
+    container_name: ros2_lerobot_dev
+    volumes:
+      - ../src:/workspace/src
+      - ../config:/workspace/config
+    ports:
+      - "5901:5901"   
+    environment:
+      - ROS_DOMAIN_ID=42
+      - DISPLAY=:1
+      - VNC_PASSWORD=${VNC_PASSWORD}   
+    networks:
+      - ros_network
+    stdin_open: true
+    tty: true
+
+networks:
+  ros_network:
+    driver: bridge
