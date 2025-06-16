@@ -26,17 +26,17 @@ RUN apt-get update && \
       wget \
       gedit \
       terminator \
-      catkin-pkg \
-      python-dotenv \
-      openai \
-    && rm -rf /var/lib/apt/lists/*
+      python3-catkin-pkg \
+      python3-dotenv && \
+    pip install --no-cache-dir --break-system-packages openai && \
+    rm -rf /var/lib/apt/lists/*
 
 # Python仮想環境作成＆パッケージインストール
 RUN python3 -m venv $VENV_DIR && \
     . $VENV_DIR/bin/activate && \
-    pip install --upgrade pip setuptools wheel && \
-    pip install lerobot && \
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    pip install --upgrade --break-system-packages pip setuptools wheel && \
+    pip install --break-system-packages lerobot && \
+    pip install --break-system-packages torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 # 追加のROS2ツール（Jazzy用）
 RUN apt-get update && \
