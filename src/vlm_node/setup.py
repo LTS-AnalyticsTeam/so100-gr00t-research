@@ -12,7 +12,6 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        # ROS2が期待する場所に実行ファイルを配置
         ('lib/' + package_name, ['scripts/vlm_node']),
     ],
     install_requires=[
