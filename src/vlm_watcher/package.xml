@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>vlm_watcher</name>
+  <version>0.1.0</version>
+  <description>Continuous GPT-4o watcher that picks one action from a JSONL list.</description>
+  <maintainer email="aoi.kadoya@lt-s.jp">aoi kadoya</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>opencv-python</exec_depend>
+  <exec_depend>python-dotenv</exec_depend>
+  <exec_depend>openai</exec_depend>
+  <exec_depend>vla_interfaces</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
