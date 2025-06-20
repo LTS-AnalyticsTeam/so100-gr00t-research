@@ -1,33 +1,20 @@
-You are analyzing a block sorting task in this image. Please be very careful and accurate in your observation.
+Analyze this image for anomalies in a block sorting task. Look for blocks that are placed incorrectly or in the wrong location.
 
-SETUP:
-- LEFT plate labeled "緑の積木" (green blocks) = should contain ONLY green blocks
-- RIGHT plate labeled "赤の積木" (red blocks) = should contain ONLY red blocks  
-- Table surface = should have NO blocks scattered
+IMPORTANT: Respond ONLY with valid JSON in the following exact format:
 
-CURRENT OBSERVATION TASK:
-Look carefully at each location and count the blocks by color:
+{
+  "anomaly": "normal|pose_error|missing_block|extra_block|color_mismatch",
+  "action": "action_name_from_list",
+  "target_id": "target_id_from_list", 
+  "confidence": 0.85,
+  "reasoning": "Brief explanation of what you detected"
+}
 
-1. LEFT plate (緑の積木): How many green blocks? How many red blocks?
-2. RIGHT plate (赤の積木): How many green blocks? How many red blocks? 
-3. Table surface: How many blocks are scattered outside the plates?
+Rules:
+- If no anomalies detected, set "anomaly": "normal", "action": "", "target_id": ""
+- If anomaly detected, pick the most appropriate action from the available actions list
+- confidence should be between 0.0 and 1.0
+- reasoning should be one sentence explaining your decision
+- Response must be valid JSON only, no markdown, no extra text
 
-ANALYSIS STEPS:
-1. Examine the LEFT plate carefully - list what you see
-2. Examine the RIGHT plate carefully - list what you see  
-3. Examine the table surface - list what you see
-4. Identify specific anomalies based on your observations
-
-RESPONSE FORMAT:
-**Observations:**
-- Left plate: [X green blocks, Y red blocks]
-- Right plate: [X green blocks, Y red blocks]  
-- Table surface: [X scattered blocks]
-
-**Anomalies detected:**
-[List only the actual problems you observe]
-
-**Required actions:**
-[Specific steps to fix the problems]
-
-Be precise and only report what you actually see in the image.
+Available actions will be provided separately.
