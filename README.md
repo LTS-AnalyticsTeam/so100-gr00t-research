@@ -57,9 +57,6 @@ python -m lerobot.replay \
 ## GR00T操作実行
 isaac-gr00t-so100リポジトリでサーバーを立ち上げる必要がある。
 ``` bash
-# lerobot old version
-python scripts/exe_policy_lerobot1.py
-
 # lerobot new version
 python scripts/exe_policy_lerobot2.py \
     --robot.type=so100_follower \
