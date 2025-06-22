@@ -58,7 +58,7 @@ python -m lerobot.replay \
 isaac-gr00t-so100リポジトリでサーバーを立ち上げる必要がある。
 ``` bash
 # lerobot new version
-python scripts/exe_policy_lerobot2.py \
+python example/exe_policy_lerobot.py \
     --robot.type=so100_follower \
     --robot.port=/dev/ttyACM1 \
     --robot.id=white \

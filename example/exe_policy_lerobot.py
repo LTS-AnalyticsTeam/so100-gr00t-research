@@ -21,7 +21,7 @@ Example command:
 
 ```shell
 
-python exe_policy_lerobot2.py \
+python exe_policy_lerobot.py \
     --robot.type=so100_follower \
     --robot.port=/dev/ttyACM1 \
     --robot.id=white \
