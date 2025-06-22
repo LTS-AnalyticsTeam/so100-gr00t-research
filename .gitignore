@@ -1,3 +1,11 @@
+# Connecting Node of ROS2
+log
+src/data
+logs
+src/vlm_node/vlm_node/vlm_node.py.backup
+install
+
+
 # Project specific definition
 gr00t-model
 outputs
