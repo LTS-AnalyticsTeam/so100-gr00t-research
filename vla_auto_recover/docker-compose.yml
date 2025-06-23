@@ -1,0 +1,15 @@
+# docker/docker-compose.yml
+services:
+  vla_auto_recover:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dustynv/ros:jazzy-desktop-r36.4.0-cu128-24.04-vla_auto_recover
+    container_name: vla_auto_recover
+    volumes:
+      - ./src:/workspace/src
+      - ./config:/workspace/config
+    network_mode: host
+    stdin_open: true
+    tty: true
+    privileged: true
