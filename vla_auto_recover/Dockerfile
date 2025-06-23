@@ -1,3 +1,3 @@
-FROM dustynv/ros:jazzy-desktop-r36.4.0-cu128-24.04
+FROM ros:jazzy-ros-base
 
 CMD [ "/bin/bash" ]
