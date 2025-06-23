@@ -1,0 +1,9 @@
+# -------- 一般ライブラリ --------
+typing_extensions==4.12.1
+openai==1.25.0
+
+# -------- lerobot / 機械学習 --------
+lerobot
+torch
+torchvision
+torchaudio
