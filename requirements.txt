@@ -7,3 +7,5 @@ lark
 pillow
 catkin_pkg
 ros2-graph 
+cv_bridge
+dotenv
