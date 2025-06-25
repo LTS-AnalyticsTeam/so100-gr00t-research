@@ -1,0 +1,9 @@
+matplotlib
+tqdm
+typing_extensions==4.12.1
+openai==1.25.0
+empy==3.3.4
+lark 
+pillow
+catkin_pkg
+ros2-graph 

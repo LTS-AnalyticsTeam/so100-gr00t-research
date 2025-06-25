@@ -1,0 +1,14 @@
+# docker/docker-compose.yml
+services:
+  vla_auto_recover:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vla_auto_recover:latest
+    container_name: vla_auto_recover
+    volumes:
+      - .:/workspace
+    network_mode: host
+    stdin_open: true
+    tty: true
+    privileged: true
