@@ -17,6 +17,15 @@ RUN apt-get update && \
     graphviz \
     && rm -rf /var/lib/apt/lists/*
 
+# node可視化用の依存関係をインストール
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository -y universe && \
+    apt-get update && \
+    apt-get install -y nodejs npm && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+
 # 作業ディレクトリを設定
 WORKDIR /workspace
 
@@ -44,7 +53,7 @@ RUN git clone https://github.com/huggingface/lerobot.git /tmp/lerobot && \
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-# 途中でインストールされるargparseを削除
+# 途中でインストールされるargparseを削除（build-inのargparseを利用すべき）
 RUN pip uninstall -y argparse
 
 # ROSワークスペースの設定

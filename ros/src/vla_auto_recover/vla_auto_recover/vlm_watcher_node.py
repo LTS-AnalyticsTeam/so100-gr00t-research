@@ -18,11 +18,15 @@ import os
 import traceback
 from datetime import datetime
 from dotenv import load_dotenv
+from ament_index_python.packages import get_package_share_directory
 
 def _init_openai_client():
     """Initialize OpenAI client (Azure or OpenAI)"""
     
-    load_dotenv('/workspace/config/.env')
+
+    package_share_dir = get_package_share_directory('vla_auto_recover')
+    env_file = os.path.join(package_share_dir, 'config', 'prompt.txt')
+    load_dotenv(env_file)
 
     use_azure = os.getenv('USE_AZURE_OPENAI', 'false').lower() == 'true'
     
@@ -55,16 +59,21 @@ class VLMWatcher(Node):
     def __init__(self):
         super().__init__('vlm_watcher')
         
+        # Get package share directory for config files
+        package_share_dir = get_package_share_directory('vla_auto_recover')
+        default_prompt_file = os.path.join(package_share_dir, 'config', 'prompt.txt')
+        default_action_list_file = os.path.join(package_share_dir, 'config', 'action_list.jsonl')
+        
         # Configuration parameters
         self.declare_parameter('fps', 5.0)
         self.declare_parameter('num_workers', 4)
         self.declare_parameter('api_timeout', 15.0)
         self.declare_parameter('max_failures', 3)
         self.declare_parameter('failure_reset_time', 300.0)  # 5 minutes
-        self.declare_parameter('log_directory', '/tmp/vlm_logs')
+        self.declare_parameter('log_directory', 'run_logs/vlm_logs')
         self.declare_parameter('save_anomaly_images', True)
-        self.declare_parameter('prompt_file', '/config/prompt.txt')
-        self.declare_parameter('action_list_file', '/config/action_list.jsonl')
+        self.declare_parameter('prompt_file', default_prompt_file)
+        self.declare_parameter('action_list_file', default_action_list_file)
         
         self.fps = self.get_parameter('fps').value
         self.num_workers = self.get_parameter('num_workers').value
