@@ -23,7 +23,10 @@ setup(
     maintainer_email='aoi.kadoya@lt-s.jp',
     description='VLM node using lerobot for anomaly detection',
     license='Apache-2.0',
-    tests_require=['pytest'],
+    tests_require=['pytest', 'pytest-mock', 'opencv-python', 'numpy'],
+    extras_require={
+        'test': ['pytest', 'pytest-mock', 'opencv-python', 'numpy']
+    },
     entry_points={
         'console_scripts': [
             'vlm_node = vlm_node.vlm_node:main',

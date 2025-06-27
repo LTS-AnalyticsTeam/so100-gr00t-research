@@ -18,6 +18,10 @@ setup(
     maintainer_email='aoi.kadoya@lt-s.jp',
     description='Gr00t controller package',
     license='Apache-2.0',
+    tests_require=['pytest', 'pytest-mock', 'numpy'],
+    extras_require={
+        'test': ['pytest', 'pytest-mock', 'numpy']
+    },
     entry_points={
         'console_scripts': [
             'gr00t_controller_node = gr00t_controller.gr00t_controller_node:main',

@@ -18,6 +18,10 @@ setup(
     maintainer_email='aoi.kadoya@lt-s.jp',
     description='Simple two-state manager for hybrid control',
     license='Apache-2.0',
+    tests_require=['pytest', 'pytest-mock'],
+    extras_require={
+        'test': ['pytest', 'pytest-mock']
+    },
     entry_points={
         'console_scripts': [
             'state_manager_node = state_manager.state_manager_node:main',
