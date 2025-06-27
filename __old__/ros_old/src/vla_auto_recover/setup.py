@@ -26,7 +26,6 @@ setup(
             'vlm_watcher_node = vla_auto_recover.vlm_watcher_node:main',
             'gr00t_controller_node = vla_auto_recover.gr00t_controller_node:main',
             'state_manager_node = vla_auto_recover.state_manager_node:main',
-            'camera_node = vla_auto_recover.camera_node:main',
         ],
     },
 )

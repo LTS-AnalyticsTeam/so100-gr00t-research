@@ -3,13 +3,6 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     return LaunchDescription([
-        # VLM Watcher Node
-        Node(
-            package='vla_auto_recover',
-            executable='camera_node',
-            name='camera',
-            output='screen'
-        ),
         # GR00T Controller Node
         Node(
             package='vla_auto_recover',

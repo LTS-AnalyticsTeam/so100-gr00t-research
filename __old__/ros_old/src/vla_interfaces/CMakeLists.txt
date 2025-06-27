@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.8)
 project(vla_interfaces)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -13,7 +13,10 @@ find_package(rosidl_default_generators REQUIRED)
 # Generate interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Action.msg"
-  "msg/State.msg"
+  "msg/Anomaly.msg"
+  "msg/RecoveryStatus.msg" 
+  "msg/VerificationRequest.msg"
+  "msg/RecoveryVerification.msg"     
   DEPENDENCIES std_msgs
 )
 

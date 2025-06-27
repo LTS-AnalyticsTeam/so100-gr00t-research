@@ -1,3 +1,2 @@
-string name
-string target_id
-uint64 timestamp
+int8 action_id
+string language_instruction
