@@ -13,16 +13,15 @@ class CameraNode(Node):
         super().__init__('camera')
 
         # ------ Publishers ------
-        self.camera_vlm_pub = self.create_publisher(Image, '/camera_vlm', 10)
-        self.camera_vla_pub = self.create_publisher(Image, '/camera_vla', 10)
+        self.image_pub = self.create_publisher(Image, '/image', 10)
 
         # ------ Subscribers ------
         # No Subscriber
 
         # ------ Timers ------
-        self.timer = self.create_timer(0.5, self._timer_callback)
+        self.timer = self.create_timer(0.5, self._cb_capture_image)
         
-    def _timer_callback(self):
+    def _cb_capture_image(self):
         """Periodic camera data publishing"""
 
         

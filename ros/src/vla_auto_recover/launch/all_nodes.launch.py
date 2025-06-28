@@ -13,8 +13,8 @@ def generate_launch_description():
         # GR00T Controller Node
         Node(
             package='vla_auto_recover',
-            executable='gr00t_controller_node',
-            name='gr00t_controller',
+            executable='vla_controller_node',
+            name='vla_controller',
             output='screen'
         ),
         

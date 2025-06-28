@@ -1,6 +1,0 @@
-{"action":"Move the green block from the tray to the left dish.","target_id":"block_green"}
-{"action":"Move the red block from the tray to the right dish.","target_id":"block_red"}
-{"action":"Transfer the green block from the right dish to the correct dish.","target_id":"block_green"}
-{"action":"Transfer the red block from the left dish to the correct dish.","target_id":"block_red"}
-{"action":"Place the left tray at its designated position.","target_id":""}
-{"action":"Place the right tray at its designated position.","target_id":""}

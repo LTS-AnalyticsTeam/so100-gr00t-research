@@ -2,25 +2,23 @@
 flowchart LR
 
 /camera[ /camera ]:::main
-/gr00t_controller[ /gr00t_controller ]:::main
 /state_manager[ /state_manager ]:::main
+/vla_controller[ /vla_controller ]:::main
 /vlm_watcher[ /vlm_watcher ]:::main
-/gr00t_controller[ /gr00t_controller ]:::node
+/vla_controller[ /vla_controller ]:::node
 /vlm_watcher[ /vlm_watcher ]:::node
-/state_manager[ /state_manager ]:::node
-/camera_vla([ /camera_vla<br>sensor_msgs/msg/Image ]):::topic
-/camera_vlm([ /camera_vlm<br>sensor_msgs/msg/Image ]):::topic
-/action([ /action<br>vla_interfaces/msg/Action ]):::topic
+/image([ /image<br>sensor_msgs/msg/Image ]):::topic
 /state([ /state<br>vla_interfaces/msg/State ]):::topic
+/action([ /action<br>vla_interfaces/msg/Action ]):::topic
 
-/action --> /gr00t_controller
-/camera_vla --> /gr00t_controller
 /state --> /state_manager
-/camera_vlm --> /vlm_watcher
-/camera --> /camera_vla
-/camera --> /camera_vlm
+/image --> /vla_controller
+/action --> /vla_controller
+/image --> /vlm_watcher
+/camera --> /image
 /state_manager --> /action
 /vlm_watcher --> /state
+
 
 subgraph keys[<b>Keys<b/>]
 subgraph nodes[<b><b/>]

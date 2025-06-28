@@ -4,6 +4,7 @@ import rclpy
 from rclpy.node import Node
 from vla_interfaces.msg import Action, State
 from sensor_msgs.msg import Image
+from .processing.vlm import CLIENT
 
 class VLMWatcher(Node):
     def __init__(self):
@@ -13,12 +14,12 @@ class VLMWatcher(Node):
         self.state_pub = self.create_publisher(State, '/state', 10)
 
         # ------ Subscribers ------
-        self.camera_vlm_sub = self.create_subscription(Image, '/camera_vlm', self._cb_camera_vlm, 10)
+        self.image_sub = self.create_subscription(Image, '/image', self._cb_watch_situation, 10)
 
         # ------ Timers ------
         self.timer = self.create_timer(3.0, self._timer_callback)
         
-    def _cb_camera_vlm(self, msg: Image):
+    def _cb_watch_situation(self, msg: Image):
         """Handle camera data for VLM analysis"""
         
     def _timer_callback(self):
