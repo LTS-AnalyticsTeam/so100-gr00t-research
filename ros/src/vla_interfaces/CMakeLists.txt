@@ -13,7 +13,6 @@ find_package(rosidl_default_generators REQUIRED)
 # Generate interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Action.msg"
-  "msg/State.msg"
   DEPENDENCIES std_msgs
 )
 

@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 
-class CameraDevice:
+class Camera:
 
     CENTER_CAM = "/dev/video0"
     RIGHT_CAM = "/dev/video2"

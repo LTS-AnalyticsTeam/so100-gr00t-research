@@ -4,17 +4,10 @@ import rclpy
 from rclpy.node import Node
 from vla_interfaces.msg import Action
 from sensor_msgs.msg import Image
-import vla_interfaces
-from enum import Enum
+from .processing.vlm_monitor import State
 
 
-class State(Enum):
-    NORMAL = vla_interfaces.msg.State.NORMAL
-    ANOMALY = vla_interfaces.msg.State.ANOMALY
-    RECOVERING = vla_interfaces.msg.State.RECOVERING
-
-
-class VLMMonitor(Node):
+class VLMMonitorNode(Node):
     def __init__(self):
         super().__init__("vlm_monitor")
 
@@ -40,11 +33,11 @@ class VLMMonitor(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = VLMMonitor()
+    node = VLMMonitorNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("VLMMonitor shutting down")
+        node.get_logger().info("VLMMonitorNode shutting down")
     finally:
         node.destroy_node()
         rclpy.shutdown()

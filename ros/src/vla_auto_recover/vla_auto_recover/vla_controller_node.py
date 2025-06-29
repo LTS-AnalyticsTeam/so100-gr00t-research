@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import rclpy
+import queue
 from rclpy.node import Node
 from vla_interfaces.msg import Action
 from sensor_msgs.msg import Image
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
 
-class VLAController(Node):
+class VLAControllerNode(Node):
     def __init__(self):
         super().__init__("vla_controller")
 
@@ -21,7 +22,7 @@ class VLAController(Node):
         self.image_sub = self.create_subscription(
             Image,
             "/image",
-            self._cb_action_exec,
+            self._cb_save_image,
             qos_profile=QoSProfile(
                 reliability=ReliabilityPolicy.BEST_EFFORT,  # 欠けてもいいから最新を速く
                 history=HistoryPolicy.KEEP_LAST,  # 直近だけ保持して古いのは捨てる
@@ -30,25 +31,34 @@ class VLAController(Node):
         )
 
         # ------ Timers ------
-        self.timer = self.create_timer(1.0, self._timer_callback)
+        self.timer = self.create_timer(1.0, self._timer_exec_action)
+
+        self._img_queue = queue.Queue(maxsize=1)
 
     def _cb_change_action(self, msg: Action):
         """Handle incoming recovery action requests"""
+        # 1. _timer_exec_actionを止める
+        # 2. Home Positionに戻す
+        # 3. アクションの変数を変更する
 
-    def _cb_action_exec(self, msg: Image):
+    def _cb_save_image(self, msg: Image):
         """Handle camera data for VLA"""
+        try:
+            self._img_queue.put_nowait(msg)
+        except queue.Full:
+            pass  # 古い画像は捨てる
 
-    def _timer_callback(self):
+    def _timer_exec_action(self):
         """Periodic status publishing"""
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = VLAController()
+    node = VLAControllerNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("VLAController shutting down")
+        node.get_logger().info("VLAControllerNode shutting down")
     finally:
         node.destroy_node()
         rclpy.shutdown()
