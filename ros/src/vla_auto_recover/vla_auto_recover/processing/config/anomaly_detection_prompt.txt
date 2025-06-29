@@ -1,6 +1,6 @@
 
 
-{normal_action_instruction}を実行しています。
+{action_instruction}を実行しています。
 このアクションを実行する上で問題となる行動はありますか？教えてください。
 異常を検知してください。
 

@@ -18,7 +18,7 @@
   - `/image_vlm`: VLM(Vision-Language Model)処理用の映像データ
 - **メッセージ型**: `sensor_msgs/msg/Image`
 
-#### 2. VLM Watcher Node (`/vlm_watcher`)
+#### 2. VLM Monitor Node (`/vlm_monitor`)
 - **役割**: 映像解析による異常検知とシステム状態の判定
 - **機能**:
   - Azure OpenAI GPT-4 Visionを使用した映像分析
@@ -33,7 +33,7 @@
 #### 3. State Manager Node (`/state_manager`) 
 - **役割**: システム状態の管理と適切なアクション指示
 - **機能**:
-  - VLM Watcherからの状態情報を基にした意思決定
+  - VLM Monitorからの状態情報を基にした意思決定
   - 復旧アクションの計画と指示
   - システム全体のワークフロー制御
 - **Subscriber**:
@@ -74,7 +74,7 @@ string language_instruction   # 自然言語での指示内容
 ## システムワークフロー
 
 1. **映像取得**: Camera Nodeがカメラデバイスから映像を取得
-2. **異常検知**: VLM WatcherがGPT-4 Visionで映像を分析し、異常を検知
+2. **異常検知**: VLM MonitorがGPT-4 Visionで映像を分析し、異常を検知
 3. **状態管理**: State Managerが状態変化を監視し、適切なアクションを決定
 4. **アクション実行**: GR00T Controllerが物理的なロボット動作を実行
 5. **フィードバック**: 実行結果を基にシステム状態を更新
@@ -115,7 +115,7 @@ EOF
 #### 個別実行
 ```bash
 ros2 run vla_auto_recover camera_node
-ros2 run vla_auto_recover vlm_watcher_node  
+ros2 run vla_auto_recover vlm_monitor_node  
 ros2 run vla_auto_recover state_manager_node
 ros2 run vla_auto_recover vla_controller_node
 ```

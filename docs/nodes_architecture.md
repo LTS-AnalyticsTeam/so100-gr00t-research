@@ -4,9 +4,9 @@ flowchart LR
 /camera[ /camera ]:::main
 /state_manager[ /state_manager ]:::main
 /vla_controller[ /vla_controller ]:::main
-/vlm_watcher[ /vlm_watcher ]:::main
+/vlm_monitor[ /vlm_monitor ]:::main
 /vla_controller[ /vla_controller ]:::node
-/vlm_watcher[ /vlm_watcher ]:::node
+/vlm_monitor[ /vlm_monitor ]:::node
 /image([ /image<br>sensor_msgs/msg/Image ]):::topic
 /state([ /state<br>vla_interfaces/msg/State ]):::topic
 /action([ /action<br>vla_interfaces/msg/Action ]):::topic
@@ -14,10 +14,10 @@ flowchart LR
 /state --> /state_manager
 /image --> /vla_controller
 /action --> /vla_controller
-/image --> /vlm_watcher
+/image --> /vlm_monitor
 /camera --> /image
 /state_manager --> /action
-/vlm_watcher --> /state
+/vlm_monitor --> /state
 
 
 subgraph keys[<b>Keys<b/>]
