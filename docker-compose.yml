@@ -1,14 +1,42 @@
 # docker/docker-compose.yml
 services:
-  vla_auto_recover:
+  vla_auto_recover-cli:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.cli
     image: vla_auto_recover:latest
-    container_name: vla_auto_recover
+    container_name: vla_auto_recover_cli
     volumes:
       - .:/workspace
     network_mode: host
+    environment:
+      - ROS_DOMAIN_ID=42
     stdin_open: true
     tty: true
     privileged: true
+
+  vla_auto_recover-gui:
+    build:
+      context: .
+      dockerfile: Dockerfile.gui
+    image: vla_auto_recover_gui:latest
+    container_name: vla_auto_recover_gui
+    shm_size: '8gb'
+    ipc: host
+    volumes:
+      - .:/workspace
+    ports:
+      - "5901:5901"   # VNC接続
+      - "6080:6080"   # noVNC（ブラウザ経由）
+    environment:
+      - ROS_DOMAIN_ID=42
+      - DISPLAY=:1
+    networks:
+      - ros_network
+    stdin_open: true
+    tty: true
+    privileged: true
+
+networks:
+  ros_network:
+    driver: bridge
