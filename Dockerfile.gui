@@ -60,6 +60,7 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         ros-jazzy-rqt* ros-jazzy-rviz2 \
         ros-jazzy-demo-nodes-cpp ros-jazzy-demo-nodes-py && \
+        ros-jazzy-launch-pytest && \
     rm -rf /var/lib/apt/lists/*
 
 ##### VNC設定ディレクトリ ############################################
