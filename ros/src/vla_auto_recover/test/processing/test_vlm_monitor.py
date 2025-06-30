@@ -2,67 +2,156 @@ import pytest
 import cv2
 import numpy as np
 from pathlib import Path
-from vla_auto_recover.processing.vlm_monitor import VLMMonitor
+from vla_auto_recover.processing.vlm_monitor import VLMMonitor, VLMDetector
+from vla_auto_recover.processing.config.system_state import ADR, RDR, VDR, State
 
-TEST_DATA_DIR = Path("/workspace/ros/src/vla_auto_recover/test/__test_data__/")
-TEST_DATA = {
-    "normal": {
-            "center_cam": TEST_DATA_DIR.joinpath("camera", "normal", "center_cam.png"),
-            "right_cam": TEST_DATA_DIR.joinpath("camera", "normal", "right_cam.png")
-    },
-    "anomaly-mispalace": {
-            "center_cam": TEST_DATA_DIR.joinpath("camera", "anomaly-mispalace", "center_cam.png"),
-            "right_cam": TEST_DATA_DIR.joinpath("camera", "anomaly-mispalace", "right_cam.png")
-    },
-    "anomaly-stacked_dish": {
-            "center_cam": TEST_DATA_DIR.joinpath("camera", "anomaly-stacked_dish", "center_cam.png"),
-            "right_cam": TEST_DATA_DIR.joinpath("camera", "anomaly-stacked_dish", "right_cam.png")
-    },
-} # fmt: skip
+TEST_DATA_DIR = Path("/workspace/ros/src/vla_auto_recover/test/__test_data__/camera")
 
 
 def test_init_vlm_monitor():
     """Test initialization of VLMMonitor"""
-    vlm = VLMMonitor()
+    vlm = VLMDetector()
     assert vlm.client is not None, "VLM client should be initialized"
     assert hasattr(vlm, "use_azure"), "VLMMonitor should have use_azure attribute"
 
 
-@pytest.mark.parametrize("pattern, state_answer", [
-    ("normal", "NORMAL"),
-    ("anomaly-mispalace", "ANOMALY"),
-    ("anomaly-stacked_dish", "ANOMALY")
+@pytest.mark.parametrize("pattern, phase, result_answer", [
+    ("normal", "start", ADR.NORMAL.value),
+    ("normal", "end", ADR.FINISHED.value),
+    ("anomaly-mispalace", "start", ADR.ANOMALY.value),
+    ("anomaly-stacked_dish", "start", ADR.ANOMALY.value)
 ]) # fmt: skip
-def test_detect_anomaly(pattern, state_answer):
+def test_CB_NORMAL(pattern, phase, result_answer):
     """Test anomaly detection with VLM"""
-    vlm = VLMMonitor()
+    vlm = VLMDetector()
     images = [
-        cv2.imread(str(TEST_DATA[pattern]["center_cam"])),
-        cv2.imread(str(TEST_DATA[pattern]["right_cam"])),
+        cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "center_cam.png"))),
+        cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "right_cam.png"))),
     ]
-    state, action_id, reason = vlm.detect_anomaly(
-        images=images,
-        language_instruction="move blocks from tray to matching dishes.",
-    )
-    print(f"Detected state: {state}, Action ID: {action_id}, Reason: {reason}")
-    assert state.value == state_answer, f"Expected state {pattern}, got {state}"
+    detection_result, action_id, reason = vlm.CB_NORMAL(images=images)
+    print(f"Detected state: {detection_result}, Action ID: {action_id}, Reason: {reason}") # fmt: skip
+    assert detection_result.value == result_answer, f"Expected state {pattern}, got {detection_result}" # fmt: skip
 
 
-@pytest.mark.parametrize("pattern, state_answer", [
-    ("anomaly-mispalace", "ANOMALY", "move blocks from tray to matching dishes."),
-    ("anomaly-stacked_dish", "ANOMALY", "move blocks from tray to matching dishes.")
+@pytest.mark.parametrize("pattern, phase, result_answer, action_id", [
+    ("anomaly-mispalace", "start", RDR.UNRECOVERED.value, 1),
+    ("anomaly-mispalace", "end", RDR.RECOVERED.value, 1),
+    ("anomaly-stacked_dish", "start", RDR.UNRECOVERED.value, 2),
+    ("anomaly-stacked_dish", "end", RDR.RECOVERED.value, 2),
 ]) # fmt: skip
-def test_check_recovery_state(pattern, state_answer, language_instruction):
+def test_CB_RECOVERY(pattern, phase, result_answer, action_id):
     """Test recovery state check"""
-    vlm = VLMMonitor()
+    vlm = VLMDetector()
     images = [
-        cv2.imread(str(TEST_DATA[pattern]["center_cam"])),
-        cv2.imread(str(TEST_DATA[pattern]["right_cam"])),
+        cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "center_cam.png"))),
+        cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "right_cam.png"))),
     ]
-    state, action_id, reason = vlm.detect_anomaly(
-        images=images,
-        language_instruction="move blocks from tray to matching dishes.",
+    detection_result, reason = vlm.CB_RECOVERY(images=images, action_id=action_id)
+    print(f"Recovery detection: {detection_result}, Reason: {reason}")
+    assert (
+        detection_result.value == result_answer
+    ), f"Expected recovery result {result_answer}, got {detection_result}"
+
+
+@pytest.mark.parametrize("pattern, phase, result_answer, action_id", [
+    ("normal", "start", VDR.SOLVED.value, 1),
+    ("normal", "end", VDR.SOLVED.value, 1),
+    ("normal", "start", VDR.SOLVED.value, 2),
+    ("normal", "end", VDR.SOLVED.value, 2),
+    ("anomaly-mispalace", "start", VDR.UNSOLVED.value, 1),
+    ("anomaly-mispalace", "end", VDR.SOLVED.value, 1),
+    ("anomaly-stacked_dish", "start", VDR.UNSOLVED.value, 2),
+    ("anomaly-stacked_dish", "end", VDR.SOLVED.value, 2),
+]) # fmt: skip
+def test_CB_VERIFICATION(pattern, phase, result_answer, action_id):
+    """Test verification state check"""
+    vlm = VLMDetector()
+    images = [
+        cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "center_cam.png"))),
+        cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "right_cam.png"))),
+    ]
+    detection_result, returned_action_id, reason = vlm.CB_VERIFICATION(
+        images=images, action_id=action_id
     )
-    assert state.value == "NORMAL", "Expected NORMAL state after recovery check"
-    assert action_id == 0, "Expected action ID 0 for normal state"
-    assert reason == "No anomalies detected", "Expected no anomalies reason"
+    print(
+        f"Verification detection: {detection_result}, Action ID: {returned_action_id}, Reason: {reason}"
+    )
+    assert (
+        detection_result.value == result_answer
+    ), f"Expected verification result {result_answer}, got {detection_result}"
+
+
+def test_show_state_transition_diagram():
+    vlm_monitor = VLMMonitor()  # mermaid形式で状態遷移図を出力
+    print(vlm_monitor.write_mermaid())
+
+
+def test_VLMMonitor_state_transition():
+    """Test state transitions in VLMMonitor
+    次のシナリオを検証する。
+    1. 初期状態はNORMALであることを確認
+    2. 10回ADR.NORMALを呼び出しても状態は変わらない
+    3. 最終的にADR.ANOMALYの結果を得たと仮定し、RECOVERY状態に遷移する。
+    4. 10回RDR.UNRECOVEREDを呼び出しても状態は変わらない
+    5. 最終的にRDR.RECOVEREDの結果を得たと仮定し、VERIFICATION状態に遷移する。
+    6. UNSOLVEDとなり、未解決な問題があるため、再度RECOVERY状態に遷移する。
+    7. 10回RDR.UNRECOVEREDを呼び出しても状態は変わらない
+    8. 最終的にRDR.RECOVEREDの結果を得たと仮定し、VERIFICATION状態に遷移する。
+    9. SOLVEDとなり、問題が解決されたため、NORMAL状態に遷移する。
+    """
+    vlm_monitor = VLMMonitor()
+
+    # 初期状態はNORMALであることを確認
+    assert vlm_monitor.state == State.NORMAL.value, "Initial state should be NORMAL"
+    step = 0
+    for i in range(10):
+        # 10回ADR.NORMALを呼び出しても状態は変わらない
+        vlm_monitor.NORMAL()
+        print(f"state{step}: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}")
+        step += 1
+        assert vlm_monitor.state == State.NORMAL.value
+    else:
+        # 最終的にADR.ANOMALYの結果を得たと仮定し、RECOVERY状態に遷移する。
+        vlm_monitor.ANOMALY()
+        print(f"state{step}: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}")
+        step += 1
+        assert vlm_monitor.state == State.RECOVERY.value
+
+    for i in range(10):
+        # 10回RDR.UNRECOVEREDを呼び出しても状態は変わらない
+        vlm_monitor.UNRECOVERED()
+        print(f"state{step}: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}")
+        step += 1
+        assert vlm_monitor.state == State.RECOVERY.value
+    else:
+        # 最終的にRDR.RECOVEREDの結果を得たと仮定し、VERIFICATION状態に遷移する。
+        vlm_monitor.RECOVERED()
+        print(f"state{step}: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}")
+        step += 1
+        assert vlm_monitor.state == State.VERIFICATION.value
+
+    # UNSOLVEDとなり、未解決な問題があるため、再度RECOVERY状態に遷移する。
+
+    vlm_monitor.UNSOLVED()
+    print(f"state{step}: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}")
+    step += 1
+    assert vlm_monitor.state == State.RECOVERY.value
+
+    for i in range(10):
+        # 10回RDR.UNRECOVEREDを呼び出しても状態は変わらない
+        vlm_monitor.UNRECOVERED()
+        print(f"state{step}: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}")
+        step += 1
+        assert vlm_monitor.state == State.RECOVERY.value
+    else:
+        # 最終的にRDR.RECOVEREDの結果を得たと仮定し、VERIFICATION状態に遷移する。
+        vlm_monitor.RECOVERED()
+        print(f"state{step}: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}")
+        step += 1
+        assert vlm_monitor.state == State.VERIFICATION.value
+
+    # SOLVEDとなり、問題が解決されたため、NORMAL状態に遷移する。
+    vlm_monitor.SOLVED()
+    print(f"state{step}: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}")
+    step += 1
+    assert vlm_monitor.state == State.NORMAL.value

@@ -6,6 +6,7 @@ class State(Enum):
     NORMAL = "NORMAL"
     RECOVERY = "RECOVERY"
     VERIFICATION = "VERIFICATION"
+    FINISHED = "FINISHED"
 
 
 class ADR(Enum):
@@ -13,6 +14,7 @@ class ADR(Enum):
 
     NORMAL = "NORMAL"
     ANOMALY = "ANOMALY"
+    FINISHED = "FINISHED"
 
 
 class RDR(Enum):
