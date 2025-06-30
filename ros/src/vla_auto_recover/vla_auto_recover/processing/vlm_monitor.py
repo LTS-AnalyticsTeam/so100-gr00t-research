@@ -58,13 +58,16 @@ class VLMDetector:
         # messagesの作成
         content = []
         prompt = ps.CB_NORMAL_PROMPT.format(
-            language_instruction=ps.ACTION_LIST[0]["language_instruction"],
-            action_list=json.dumps(ps.ACTION_LIST, indent=2, ensure_ascii=False),
+            language_instruction=ps.NORMAL_LANGUAGE_INSTRUCTION,
+            recovery_action_list=json.dumps(
+                ps.RECOVERY_ACTION_LIST, indent=2, ensure_ascii=False
+            ),
         )
         content.append({"type": "text", "text": prompt})
         for img in openai_images:
             content.append({"type": "image_url", "image_url": {"url": img}})
 
+        print(f"prompt: \n{prompt}")
         response = self.client.chat.completions.create(
             model=self.MODEL,
             messages=[{"role": "user", "content": content}],
@@ -81,7 +84,9 @@ class VLMDetector:
         openai_images = [self._transform_image_for_openai(img) for img in images]
 
         # Get action instruction based on action_id
-        language_instruction = ps.ACTION_LIST[action_id]["language_instruction"]
+        language_instruction = ps.RECOVERY_ACTION_LIST[action_id][
+            "language_instruction"
+        ]
 
         # messagesの作成
         content = []
@@ -92,7 +97,7 @@ class VLMDetector:
         for img in openai_images:
             content.append({"type": "image_url", "image_url": {"url": img}})
 
-        print(prompt)
+        print(f"prompt: \n{prompt}")
         response = self.client.chat.completions.create(
             model=self.MODEL,
             messages=[{"role": "user", "content": content}],
@@ -110,43 +115,18 @@ class VLMDetector:
         """Verify if the anomaly has been resolved"""
         openai_images = [self._transform_image_for_openai(img) for img in images]
 
-        # Get action instruction based on action_id
-        language_instruction = ps.ACTION_LIST[action_id]["language_instruction"]
-
         # messagesの作成
         content = []
         prompt = ps.CB_VERIFICATION_PROMPT.format(
-            language_instruction=language_instruction,
-            action_list=json.dumps(ps.ACTION_LIST, indent=2, ensure_ascii=False),
+            recovery_action_list=json.dumps(
+                ps.RECOVERY_ACTION_LIST, indent=2, ensure_ascii=False
+            ),
         )
         content.append({"type": "text", "text": prompt})
         for img in openai_images:
             content.append({"type": "image_url", "image_url": {"url": img}})
 
-        response = self.client.chat.completions.create(
-            model=self.MODEL,
-            messages=[{"role": "user", "content": content}],
-            response_format={
-                "type": "json_schema",
-                "json_schema": ps.CB_VERIFICATION_JSON_SCHEMA,
-            },
-        )
-
-        return self._parse_CB_VERIFICATION_response(response)
-        openai_images = [self._transform_image_for_openai(img) for img in images]
-
-        # Get action instruction based on action_id
-        language_instruction = ps.ACTION_LIST[action_id]["language_instruction"]
-
-        # messagesの作成
-        content = []
-        prompt = ps.CB_VERIFICATION_PROMPT.format(
-            language_instruction=language_instruction,
-        )
-        content.append({"type": "text", "text": prompt})
-        for img in openai_images:
-            content.append({"type": "image_url", "image_url": {"url": img}})
-
+        print(f"prompt: \n{prompt}")
         response = self.client.chat.completions.create(
             model=self.MODEL,
             messages=[{"role": "user", "content": content}],
@@ -179,9 +159,9 @@ class VLMDetector:
             reason = parsed_response["reason"]
 
             # Validate state value
-            if detection_result_str not in ["NORMAL", "ANOMALY", "FINISHED"]:
+            if detection_result_str not in ["NORMAL", "ANOMALY", "COMPLETION"]:
                 raise ValueError(
-                    f"Invalid state value: {detection_result_str}. Expected 'NORMAL', 'ANOMALY', or 'FINISHED'"
+                    f"Invalid state value: {detection_result_str}. Expected 'NORMAL', 'ANOMALY', or 'COMPLETION'"
                 )
 
             # Convert string to State enum
@@ -271,10 +251,17 @@ class VLMDetector:
 
 
 class VLMMonitor:
-    states = [State.NORMAL.value, State.RECOVERY.value, State.VERIFICATION.value]
+    state: str
+    states = [
+        State.NORMAL.value,
+        State.RECOVERY.value,
+        State.VERIFICATION.value,
+        State.COMPLETION.value,
+    ]
     transitions = [
         {"trigger": ADR.NORMAL.value, "source": State.NORMAL.value, "dest": State.NORMAL.value},
         {"trigger": ADR.ANOMALY.value, "source": State.NORMAL.value, "dest": State.RECOVERY.value},
+        {"trigger": ADR.COMPLETION.value, "source": State.NORMAL.value, "dest": State.COMPLETION.value},
         {"trigger": RDR.UNRECOVERED.value, "source": State.RECOVERY.value, "dest": State.RECOVERY.value},
         {"trigger": RDR.RECOVERED.value, "source": State.RECOVERY.value, "dest": State.VERIFICATION.value},
         {"trigger": VDR.SOLVED.value, "source": State.VERIFICATION.value, "dest": State.NORMAL.value},
