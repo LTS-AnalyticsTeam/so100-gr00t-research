@@ -1,12 +1,3 @@
-import json
-from enum import Enum
-
-
-class State(Enum):
-    NORMAL = "NORMAL"
-    ANOMALY = "ANOMALY"
-
-
 # ===========================================================================================
 ACTION_LIST = [
     {"action_id": 0, "class": "NORMAL ACTION", "language_instruction": "move blocks from tray to matching dishes."},

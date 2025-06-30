@@ -42,7 +42,27 @@ def test_detect_anomaly(pattern, state_answer):
     ]
     state, action_id, reason = vlm.detect_anomaly(
         images=images,
-        action_instruction="move blocks from tray to matching dishes.",
+        language_instruction="move blocks from tray to matching dishes.",
     )
     print(f"Detected state: {state}, Action ID: {action_id}, Reason: {reason}")
     assert state.value == state_answer, f"Expected state {pattern}, got {state}"
+
+
+@pytest.mark.parametrize("pattern, state_answer", [
+    ("anomaly-mispalace", "ANOMALY", "move blocks from tray to matching dishes."),
+    ("anomaly-stacked_dish", "ANOMALY", "move blocks from tray to matching dishes.")
+]) # fmt: skip
+def test_check_recovery_state(pattern, state_answer, language_instruction):
+    """Test recovery state check"""
+    vlm = VLMMonitor()
+    images = [
+        cv2.imread(str(TEST_DATA[pattern]["center_cam"])),
+        cv2.imread(str(TEST_DATA[pattern]["right_cam"])),
+    ]
+    state, action_id, reason = vlm.detect_anomaly(
+        images=images,
+        language_instruction="move blocks from tray to matching dishes.",
+    )
+    assert state.value == "NORMAL", "Expected NORMAL state after recovery check"
+    assert action_id == 0, "Expected action ID 0 for normal state"
+    assert reason == "No anomalies detected", "Expected no anomalies reason"

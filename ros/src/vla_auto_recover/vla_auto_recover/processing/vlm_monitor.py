@@ -5,9 +5,8 @@ import json
 from pathlib import Path
 from dotenv import load_dotenv
 import numpy as np
-from enum import Enum
-from .config import settings
-from .config.settings import State
+from .config import prompt_settings as ps
+from .config.prompt_settings import State
 
 
 class VLMMonitor:
@@ -51,16 +50,16 @@ class VLMMonitor:
             return None, use_azure
 
     def detect_anomaly(
-        self, images: list[np.ndarray], action_instruction: str
+        self, images: list[np.ndarray], language_instruction: str
     ) -> tuple[State, int]:
         """Detect anomalies and suggest actions using VLM"""
         openai_images = [self._transform_image_for_openai(img) for img in images]
 
         # messagesの作成
         content = []
-        prompt = settings.ANOMALY_DETECTION_PROMPT.format(
-            action_instruction=action_instruction,
-            action_list=json.dumps(settings.ACTION_LIST, indent=2, ensure_ascii=False),
+        prompt = ps.ANOMALY_DETECTION_PROMPT.format(
+            language_instruction=language_instruction,
+            action_list=json.dumps(ps.ACTION_LIST, indent=2, ensure_ascii=False),
         )
         content.append({"type": "text", "text": prompt})
         for img in openai_images:
@@ -71,22 +70,22 @@ class VLMMonitor:
             messages=[{"role": "user", "content": content}],
             response_format={
                 "type": "json_schema",
-                "json_schema": settings.JSON_SCHEMA_ANOMALY_DETECTION,
+                "json_schema": ps.JSON_SCHEMA_ANOMALY_DETECTION,
             },
         )
 
         return self._parse_anomaly_detection_response(response)
 
     def check_recovery_state(
-        self, images: list[np.ndarray], action_instruction: str
+        self, images: list[np.ndarray], language_instruction: str
     ) -> State:
         """Check if the system is recovering from an anomaly"""
         openai_images = [self._transform_image_for_openai(img) for img in images]
 
         # messagesの作成
         content = []
-        prompt = settings.RECOVERY_STATE_PROMPT.format(
-            action_instruction=action_instruction
+        prompt = ps.RECOVERY_STATE_PROMPT.format(
+            language_instruction=language_instruction
         )
         content.append({"type": "text", "text": prompt})
         for img in openai_images:
@@ -97,7 +96,7 @@ class VLMMonitor:
             messages=[{"role": "user", "content": content}],
             response_format={
                 "type": "json_schema",
-                "json_schema": settings.JSON_SCHEMA_RECOVERY_STATE,
+                "json_schema": ps.JSON_SCHEMA_RECOVERY_STATE,
             },
         )
 
