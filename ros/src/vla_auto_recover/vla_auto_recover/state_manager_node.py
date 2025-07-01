@@ -3,9 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from .processing.vlm_detector import VLMDetector
-from vla_interfaces.msg import DetectionResult
-from sensor_msgs.msg import Image
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, String
 
 
 class StateManagerNode(Node):
@@ -19,7 +17,7 @@ class StateManagerNode(Node):
 
         # ------ Subscribers ------
         self.detection_result_sub = self.create_subscription(
-            DetectionResult, "/detection_result", self._cb_transition, 10
+            String, "/detection_result", self._cb_transition, 10
         )
 
         # ------ Timers ------
@@ -27,7 +25,7 @@ class StateManagerNode(Node):
 
         self.vlm_detector = VLMDetector()
 
-    def _cb_transition(self, msg: DetectionResult): ...
+    def _cb_transition(self, msg: String): ...
 
     def _timer_state_logger(self): ...
 

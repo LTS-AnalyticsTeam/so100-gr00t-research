@@ -3,9 +3,9 @@
 import rclpy
 import queue
 from rclpy.node import Node
-from sensor_msgs.msg import Image
 from std_msgs.msg import Int32
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
+from vla_interfaces.msg import ImagePair
 
 
 class VLAControllerNode(Node):
@@ -20,7 +20,7 @@ class VLAControllerNode(Node):
             Int32, "/action_id", self._cb_change_action, 10
         )
         self.image_sub = self.create_subscription(
-            Image,
+            ImagePair,
             "/image/vla",
             self._cb_save_image,
             qos_profile=QoSProfile(
@@ -41,7 +41,7 @@ class VLAControllerNode(Node):
         # 2. Home Positionに戻す
         # 3. アクションの変数を変更する
 
-    def _cb_save_image(self, msg: Image):
+    def _cb_save_image(self, msg: ImagePair):
         """Handle camera data for VLA"""
         try:
             self._img_queue.put_nowait(msg)

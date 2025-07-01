@@ -2,9 +2,9 @@
 
 import rclpy
 from rclpy.node import Node
-from vla_interfaces.msg import DetectionResult, State
-from sensor_msgs.msg import Image
+from vla_interfaces.msg import ImagePair
 from .processing.vlm_detector import VLMDetector
+from std_msgs.msg import String
 
 
 class VLMDetectorNode(Node):
@@ -14,15 +14,15 @@ class VLMDetectorNode(Node):
 
         # ------ Publishers ------
         self.detection_result_pub = self.create_publisher(
-            DetectionResult, "/detection_result", 10
+            String, "/detection_result", 10
         )
 
         # ------ Subscribers ------
         self.image_sub = self.create_subscription(
-            Image, "/image/vlm", self._cb_put_queue, 10
+            ImagePair, "/image/vlm", self._cb_put_queue, 10
         )
         self.state_change_sub = self.create_subscription(
-            State, "/state_change", self._cb_change_state, 10
+            String, "/state_change", self._cb_change_state, 10
         )
 
         # ------ Timers ------
@@ -30,9 +30,9 @@ class VLMDetectorNode(Node):
 
         self.vlm_detector = VLMDetector()
 
-    def _cb_put_queue(self, msg: Image): ...
+    def _cb_put_queue(self, msg: ImagePair): ...
 
-    def _cb_change_state(self, msg: State): ...
+    def _cb_change_state(self, msg: String): ...
 
     def _detector_worker(self): ...
 
