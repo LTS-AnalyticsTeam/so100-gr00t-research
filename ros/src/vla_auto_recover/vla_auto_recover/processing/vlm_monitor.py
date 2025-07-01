@@ -12,6 +12,8 @@ from transitions import Machine
 from transitions.extensions import GraphMachine
 from dataclasses import dataclass
 
+CB_PREFIX = "CB_"
+
 
 @dataclass
 class CB_InputIF:
@@ -21,21 +23,24 @@ class CB_InputIF:
 
 @dataclass
 class CB_OutputIF:
-    detection_result: State = None
+    detection_result: ADR | RDR | VDR = None
     action_id: int = None
     reason: str = None
 
 
 class BaseModel:
 
-    def CB_NORMAL(self):
-        print("call: CB_NORMAL")
+    def CB_RUNNING(self, input_data: CB_InputIF) -> CB_OutputIF:
+        print("call: CB_RUNNING")
 
-    def CB_RECOVERY(self):
+    def CB_RECOVERY(self, input_data: CB_InputIF) -> CB_OutputIF:
         print("call: CB_RECOVERY")
 
-    def CB_VERIFICATION(self):
+    def CB_VERIFICATION(self, input_data: CB_InputIF) -> CB_OutputIF:
         print("call: CB_VERIFICATION")
+
+    def CB_END(self, input_data: CB_InputIF) -> CB_OutputIF:
+        print("call: CB_END")
 
 
 class VLMDetector(BaseModel):
@@ -78,7 +83,7 @@ class VLMDetector(BaseModel):
             print(f"Warning: OpenAI client not available: {e}")
             return None, use_azure
 
-    def CB_NORMAL(self, input_data: CB_InputIF) -> CB_OutputIF:
+    def CB_RUNNING(self, input_data: CB_InputIF) -> CB_OutputIF:
         """Detect anomalies and suggest actions using VLM"""
         openai_images = [
             self._transform_image_for_openai(img) for img in input_data.images
@@ -86,7 +91,7 @@ class VLMDetector(BaseModel):
 
         # messagesの作成
         content = []
-        prompt = ps.CB_NORMAL_PROMPT.format(
+        prompt = ps.CB_RUNNING_PROMPT.format(
             language_instruction=ps.NORMAL_LANGUAGE_INSTRUCTION,
             recovery_action_list=json.dumps(
                 ps.RECOVERY_ACTION_LIST, indent=2, ensure_ascii=False
@@ -102,11 +107,11 @@ class VLMDetector(BaseModel):
             messages=[{"role": "user", "content": content}],
             response_format={
                 "type": "json_schema",
-                "json_schema": ps.CB_NORMAL_JSON_SCHEMA,
+                "json_schema": ps.CB_RUNNING_JSON_SCHEMA,
             },
         )
 
-        return self._parse_CB_NORMAL_response(response)
+        return self._parse_CB_RUNNING_response(response)
 
     def CB_RECOVERY(self, input_data: CB_InputIF) -> CB_OutputIF:
         """Check if the system is recovering from an anomaly"""
@@ -169,7 +174,10 @@ class VLMDetector(BaseModel):
 
         return self._parse_CB_VERIFICATION_response(response)
 
-    def _parse_CB_NORMAL_response(self, response) -> CB_OutputIF:
+    def CB_END(self, input_data: CB_InputIF) -> CB_OutputIF:
+        print("call: CB_END")
+
+    def _parse_CB_RUNNING_response(self, response) -> CB_OutputIF:
         """Parse and validate anomaly detection response"""
         try:
             response_text = response.choices[0].message.content
@@ -293,68 +301,96 @@ class VLMDetector(BaseModel):
         return f"data:image/jpeg;base64,{base64_image}"
 
 
-STATES = [
-    State.RUNNING.value,
-    State.RECOVERY.value,
-    State.VERIFICATION.value,
-    State.END.value,
-]
+class VLMMonitor:
 
-TRANSITIONS = [
-    {"trigger": ADR.NORMAL.value, "source": State.RUNNING.value, "dest": State.RUNNING.value},
-    {"trigger": ADR.ANOMALY.value, "source": State.RUNNING.value, "dest": State.RECOVERY.value},
-    {"trigger": ADR.COMPLETION.value, "source": State.RUNNING.value, "dest": State.END.value},
-    {"trigger": RDR.UNRECOVERED.value, "source": State.RECOVERY.value, "dest": State.RECOVERY.value},
-    {"trigger": RDR.RECOVERED.value, "source": State.RECOVERY.value, "dest": State.VERIFICATION.value},
-    {"trigger": VDR.SOLVED.value, "source": State.VERIFICATION.value, "dest": State.RUNNING.value},
-    {"trigger": VDR.UNSOLVED.value, "source": State.VERIFICATION.value, "dest": State.RECOVERY.value},
-] # fmt: skip
-
-
-def build_state_machine():
-    vlm = VLMDetector()
-    machine = Machine(
-        model=vlm,
-        states=STATES,
-        transitions=TRANSITIONS,
-        initial=State.RUNNING.value,
-    )
-    return vlm, machine
-
-
-def print_mermaid():
-    vlm = VLMDetector()
-    machine = GraphMachine(
-        model=vlm,
-        states=STATES,
-        transitions=TRANSITIONS,
-        initial="IDLE",
-        graph_engine="mermaid",  # ← ここがポイント
-        show_conditions=True,  # 任意: ガードをエッジに表示
-    )
-    mermaid_src = vlm.get_graph().source
-    print(mermaid_src)
-
-
-def pprint_mermaid():
-    lines = [
-        "```mermaid",
-        "---",
-        "config:",
-        "  theme: redux",
-        "  flowchart:",
-        "    nodeSpacing: 300",
-        "    rankSpacing: 60",
-        "    curve: basis",
-        "---",
+    STATES = [
+        State.RUNNING.value,
+        State.RECOVERY.value,
+        State.VERIFICATION.value,
+        State.END.value,
     ]
-    lines.append("flowchart TD")
-    for state in STATES:
-        lines.append(f"    {state}({state})")
-        lines.append(f"    {state}({state}) --> CB_{state}{{CB_{state}}}") # fmt: skip
-    for linkage in TRANSITIONS:
-        lines.append(
-            f"    CB_{linkage['source']}{{CB_{linkage['source']}}} -- {linkage['trigger']} --> {linkage['dest']}({linkage['dest']})"
+
+    TRANSITIONS = [
+        {"trigger": ADR.NORMAL.value, "source": State.RUNNING.value, "dest": State.RUNNING.value},
+        {"trigger": ADR.ANOMALY.value, "source": State.RUNNING.value, "dest": State.RECOVERY.value},
+        {"trigger": ADR.COMPLETION.value, "source": State.RUNNING.value, "dest": State.END.value},
+        {"trigger": RDR.UNRECOVERED.value, "source": State.RECOVERY.value, "dest": State.RECOVERY.value},
+        {"trigger": RDR.RECOVERED.value, "source": State.RECOVERY.value, "dest": State.VERIFICATION.value},
+        {"trigger": VDR.SOLVED.value, "source": State.VERIFICATION.value, "dest": State.RUNNING.value},
+        {"trigger": VDR.UNSOLVED.value, "source": State.VERIFICATION.value, "dest": State.RECOVERY.value},
+    ] # fmt: skip
+
+    def __init__(self, debug=False):
+        if debug:
+            self.mdl = BaseModel()
+        else:
+            self.mdl = VLMDetector()
+
+        self.machine = Machine(
+            model=self.mdl,
+            states=self.STATES,
+            transitions=self.TRANSITIONS,
+            initial=State.RUNNING.value,
         )
-    lines.append("```")
-    return "\n".join(lines)
+
+    def step(self, input_data: CB_InputIF) -> CB_OutputIF:
+        """Execute a single step of the state machine"""
+        # Callbackの実行
+        output_data = self.call_CB(input_data)
+        # 状態遷移の実行
+        self.transition(output_data)
+        return output_data
+
+    def call_CB(self, input_data: CB_InputIF) -> CB_OutputIF:
+        # Callbackの実行
+        call_back_name = CB_PREFIX + self.mdl.state
+        call_back_func = getattr(self.mdl, call_back_name)
+        output_data = call_back_func(input_data)
+        return output_data
+
+    def transition(self, detection_result: ADR | RDR | VDR) -> None:
+        """TRANSITIONSのシナリオに基づいて状態遷移を実行"""
+        # 状態遷移の実行
+        trigger_name = detection_result.value
+        transition_func = getattr(self.mdl, trigger_name)
+        transition_func()
+        return None
+
+    @classmethod
+    def print_mermaid(cls):
+        mdl = VLMDetector()
+        machine = GraphMachine(
+            model=mdl,
+            states=cls.STATES,
+            transitions=cls.TRANSITIONS,
+            initial="IDLE",
+            graph_engine="mermaid",  # ← ここがポイント
+            show_conditions=True,  # 任意: ガードをエッジに表示
+        )
+        mermaid_src = mdl.get_graph().source
+        print(mermaid_src)
+        return None
+
+    @classmethod
+    def pprint_mermaid(cls):
+        lines = [
+            "```mermaid",
+            "---",
+            "config:",
+            "  theme: redux",
+            "  flowchart:",
+            "    nodeSpacing: 300",
+            "    rankSpacing: 60",
+            "    curve: basis",
+            "---",
+        ]
+        lines.append("flowchart TD")
+        for state in cls.STATES:
+            lines.append(f"    {state}({state})")
+            lines.append(f"    {state}({state}) --> {CB_PREFIX}{state}{{{CB_PREFIX}{state}}}") # fmt: skip
+        for linkage in cls.TRANSITIONS:
+            lines.append(
+                f"    {CB_PREFIX}{linkage['source']}{{{CB_PREFIX}{linkage['source']}}} -- {linkage['trigger']} --> {linkage['dest']}({linkage['dest']})"
+            )
+        lines.append("```")
+        return "\n".join(lines)

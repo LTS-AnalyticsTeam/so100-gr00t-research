@@ -2,12 +2,7 @@ import pytest
 import cv2
 import numpy as np
 from pathlib import Path
-from vla_auto_recover.processing.vlm_monitor import (
-    VLMDetector,
-    CB_InputIF,
-    build_state_machine,
-    pprint_mermaid,
-)
+from vla_auto_recover.processing.vlm_monitor import VLMDetector, CB_InputIF, VLMMonitor
 from vla_auto_recover.processing.config.system_state import ADR, RDR, VDR, State
 
 TEST_DATA_DIR = Path("/workspace/ros/src/vla_auto_recover/test/__test_data__/camera")
@@ -26,7 +21,7 @@ def test_init_vlm_monitor():
     ("anomaly-mispalace", "start", ADR.ANOMALY.value),
     ("anomaly-stacked_dish", "start", ADR.ANOMALY.value)
 ]) # fmt: skip
-def test_CB_NORMAL(pattern, phase, result_answer):
+def test_CB_RUNNING(pattern, phase, result_answer):
     """Test anomaly detection with VLM"""
     vlm = VLMDetector()
     images = [
@@ -34,7 +29,7 @@ def test_CB_NORMAL(pattern, phase, result_answer):
         cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "right_cam.png"))),
     ]
     input_data = CB_InputIF(images=images, action_id=None)
-    output = vlm.CB_NORMAL(input_data=input_data)
+    output = vlm.CB_RUNNING(input_data=input_data)
     print(f"Detected state: {output.detection_result}, Action ID: {output.action_id}, Reason: {output.reason}") # fmt: skip
     assert output.detection_result.value == result_answer, f"Expected state {pattern}, got {output.detection_result}" # fmt: skip
 
@@ -89,7 +84,7 @@ def test_CB_VERIFICATION(pattern, phase, result_answer, action_id):
 
 def test_show_state_transition_diagram():
     # mermaid形式で状態遷移図を出力
-    print(pprint_mermaid())
+    print(VLMMonitor.pprint_mermaid())
 
 
 def test_VLMMonitor_state_transition():
@@ -105,64 +100,93 @@ def test_VLMMonitor_state_transition():
     8. 最終的にRDR.RECOVEREDの結果を得たと仮定し、VERIFICATION状態に遷移する。
     9. SOLVEDとなり、問題が解決されたため、NORMAL状態に遷移する。
     """
-    vlm, machine = build_state_machine()
-
-    # 初期状態はNORMALであることを確認
-    assert vlm.state == State.RUNNING.value, "Initial state should be NORMAL"
+    vlm_monitor = VLMMonitor()
+    # 初期状態はRUNNINGであることを確認
+    assert (
+        vlm_monitor.mdl.state == State.RUNNING.value
+    ), "Initial state should be RUNNING"
     step = 0
     for i in range(10):
         # 10回ADR.NORMALを呼び出しても状態は変わらない
-        vlm.NORMAL()
-        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
+        vlm_monitor.transition(ADR.NORMAL)
+        print(f"{step}. state: {vlm_monitor.mdl.state}, CB: CB_{vlm_monitor.mdl.state}")
         step += 1
-        assert vlm.state == State.RUNNING.value
+        assert vlm_monitor.mdl.state == State.RUNNING.value
     else:
         # 最終的にADR.ANOMALYの結果を得たと仮定し、RECOVERY状態に遷移する。
-        vlm.ANOMALY()
-        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
+        vlm_monitor.transition(ADR.ANOMALY)
+        print(f"{step}. state: {vlm_monitor.mdl.state}, CB: CB_{vlm_monitor.mdl.state}")
         step += 1
-        assert vlm.state == State.RECOVERY.value
+        assert vlm_monitor.mdl.state == State.RECOVERY.value
 
     for i in range(10):
         # 10回RDR.UNRECOVEREDを呼び出しても状態は変わらない
-        vlm.UNRECOVERED()
-        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
+        vlm_monitor.transition(RDR.UNRECOVERED)
+        print(f"{step}. state: {vlm_monitor.mdl.state}, CB: CB_{vlm_monitor.mdl.state}")
         step += 1
-        assert vlm.state == State.RECOVERY.value
+        assert vlm_monitor.mdl.state == State.RECOVERY.value
     else:
         # 最終的にRDR.RECOVEREDの結果を得たと仮定し、VERIFICATION状態に遷移する。
-        vlm.RECOVERED()
-        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
+        vlm_monitor.transition(RDR.RECOVERED)
+        print(f"{step}. state: {vlm_monitor.mdl.state}, CB: CB_{vlm_monitor.mdl.state}")
         step += 1
-        assert vlm.state == State.VERIFICATION.value
+        assert vlm_monitor.mdl.state == State.VERIFICATION.value
 
     # UNSOLVEDとなり、未解決な問題があるため、再度RECOVERY状態に遷移する。
 
-    vlm.UNSOLVED()
-    print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
+    vlm_monitor.transition(VDR.UNSOLVED)
+    print(f"{step}. state: {vlm_monitor.mdl.state}, CB: CB_{vlm_monitor.mdl.state}")
     step += 1
-    assert vlm.state == State.RECOVERY.value
+    assert vlm_monitor.mdl.state == State.RECOVERY.value
 
     for i in range(10):
         # 10回RDR.UNRECOVEREDを呼び出しても状態は変わらない
-        vlm.UNRECOVERED()
-        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
+        vlm_monitor.transition(RDR.UNRECOVERED)
+        print(f"{step}. state: {vlm_monitor.mdl.state}, CB: CB_{vlm_monitor.mdl.state}")
         step += 1
-        assert vlm.state == State.RECOVERY.value
+        assert vlm_monitor.mdl.state == State.RECOVERY.value
     else:
         # 最終的にRDR.RECOVEREDの結果を得たと仮定し、VERIFICATION状態に遷移する。
-        vlm.RECOVERED()
-        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
+        vlm_monitor.transition(RDR.RECOVERED)
+        print(f"{step}. state: {vlm_monitor.mdl.state}, CB: CB_{vlm_monitor.mdl.state}")
         step += 1
-        assert vlm.state == State.VERIFICATION.value
+        assert vlm_monitor.mdl.state == State.VERIFICATION.value
 
-    # SOLVEDとなり、問題が解決されたため、NORMAL状態に遷移する。
-    vlm.SOLVED()
-    print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
+    # SOLVEDとなり、問題が解決されたため、RUNNING状態に遷移する。
+    vlm_monitor.transition(VDR.SOLVED)
+    print(f"{step}. state: {vlm_monitor.mdl.state}, CB: CB_{vlm_monitor.mdl.state}")
     step += 1
-    assert vlm.state == State.RUNNING.value
+    assert vlm_monitor.mdl.state == State.RUNNING.value
 
-    vlm.COMPLETION()
-    print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
+    # 最終的にEND状態に遷移する。
+    vlm_monitor.transition(ADR.COMPLETION)
+    print(f"{step}. state: {vlm_monitor.mdl.state}, CB: CB_{vlm_monitor.mdl.state}")
     step += 1
-    assert vlm.state == State.END.value
+    assert vlm_monitor.mdl.state == State.END.value
+
+
+def test_VLMMonitor_call_CB():
+    """各状態でのコールバック関数の呼び出しをテスト"""
+    vlm_monitor = VLMMonitor(debug=True)
+    input_data = CB_InputIF(images=[], action_id=None)
+    print("=" * 20)
+
+    vlm_monitor.mdl.state = State.RUNNING.value
+    print(f"state: {vlm_monitor.mdl.state}")
+    vlm_monitor.call_CB(input_data)
+    print("=" * 20)
+
+    vlm_monitor.mdl.state = State.RECOVERY.value
+    print(f"state: {vlm_monitor.mdl.state}")
+    vlm_monitor.call_CB(input_data)
+    print("=" * 20)
+
+    vlm_monitor.mdl.state = State.VERIFICATION.value
+    print(f"state: {vlm_monitor.mdl.state}")
+    vlm_monitor.call_CB(input_data)
+    print("=" * 20)
+
+    vlm_monitor.mdl.state = State.END.value
+    print(f"state: {vlm_monitor.mdl.state}")
+    vlm_monitor.call_CB(input_data)
+    print("=" * 20)

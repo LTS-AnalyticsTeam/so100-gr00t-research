@@ -24,7 +24,7 @@ blockがtrayにあることは異常なことではなく、初期状態です�
 """
 
 # ===========================================================================================
-CB_NORMAL_PROMPT = (
+CB_RUNNING_PROMPT = (
     GENERAL_PROMPT
     + """
 <recovery_action_list>
@@ -41,7 +41,7 @@ action_id=0が問題なく実行できる場合は、detection_result=`NORMAL`, 
 )
 
 # ===========================================================================================
-CB_NORMAL_JSON_SCHEMA = {
+CB_RUNNING_JSON_SCHEMA = {
     "name": "AnomalyDetectionResult",
     "strict": True,
     "schema": {
