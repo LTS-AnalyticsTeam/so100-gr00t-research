@@ -2,7 +2,11 @@ import pytest
 import cv2
 import numpy as np
 from pathlib import Path
-from vla_auto_recover.processing.vlm_monitor import VLMMonitor, VLMDetector
+from vla_auto_recover.processing.vlm_monitor import (
+    VLMMonitor,
+    VLMDetector,
+    CB_InputIF,
+)
 from vla_auto_recover.processing.config.system_state import ADR, RDR, VDR, State
 
 TEST_DATA_DIR = Path("/workspace/ros/src/vla_auto_recover/test/__test_data__/camera")
@@ -28,9 +32,10 @@ def test_CB_NORMAL(pattern, phase, result_answer):
         cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "center_cam.png"))),
         cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "right_cam.png"))),
     ]
-    detection_result, action_id, reason = vlm.CB_NORMAL(images=images)
-    print(f"Detected state: {detection_result}, Action ID: {action_id}, Reason: {reason}") # fmt: skip
-    assert detection_result.value == result_answer, f"Expected state {pattern}, got {detection_result}" # fmt: skip
+    input_data = CB_InputIF(images=images, action_id=None)
+    output = vlm.CB_NORMAL(input_data=input_data)
+    print(f"Detected state: {output.detection_result}, Action ID: {output.action_id}, Reason: {output.reason}") # fmt: skip
+    assert output.detection_result.value == result_answer, f"Expected state {pattern}, got {output.detection_result}" # fmt: skip
 
 
 @pytest.mark.parametrize("pattern, phase, result_answer, action_id", [
@@ -46,11 +51,12 @@ def test_CB_RECOVERY(pattern, phase, result_answer, action_id):
         cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "center_cam.png"))),
         cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "right_cam.png"))),
     ]
-    detection_result, reason = vlm.CB_RECOVERY(images=images, action_id=action_id)
-    print(f"Recovery detection: {detection_result}, Reason: {reason}")
+    input_data = CB_InputIF(images=images, action_id=action_id)
+    output = vlm.CB_RECOVERY(input_data=input_data)
+    print(f"Recovery detection: {output.detection_result}, Reason: {output.reason}")
     assert (
-        detection_result.value == result_answer
-    ), f"Expected recovery result {result_answer}, got {detection_result}"
+        output.detection_result.value == result_answer
+    ), f"Expected recovery result {result_answer}, got {output.detection_result}"
 
 
 @pytest.mark.parametrize("pattern, phase, result_answer, action_id", [
@@ -70,15 +76,14 @@ def test_CB_VERIFICATION(pattern, phase, result_answer, action_id):
         cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "center_cam.png"))),
         cv2.imread(str(TEST_DATA_DIR.joinpath(pattern, phase, "right_cam.png"))),
     ]
-    detection_result, returned_action_id, reason = vlm.CB_VERIFICATION(
-        images=images, action_id=action_id
-    )
+    input_data = CB_InputIF(images=images, action_id=action_id)
+    output = vlm.CB_VERIFICATION(input_data=input_data)
     print(
-        f"Verification detection: {detection_result}, Action ID: {returned_action_id}, Reason: {reason}"
+        f"Verification detection: {output.detection_result}, Action ID: {output.action_id}, Reason: {output.reason}"
     )
     assert (
-        detection_result.value == result_answer
-    ), f"Expected verification result {result_answer}, got {detection_result}"
+        output.detection_result.value == result_answer
+    ), f"Expected verification result {result_answer}, got {output.detection_result}"
 
 
 def test_show_state_transition_diagram():

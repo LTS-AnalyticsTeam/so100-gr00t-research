@@ -9,6 +9,20 @@ from .config import prompt_settings as ps
 from .config.system_state import ADR, RDR, VDR, State
 from enum import Enum
 from transitions import Machine
+from dataclasses import dataclass
+
+
+@dataclass
+class CB_InputIF:
+    images: list[np.ndarray] = None
+    action_id: int = None
+
+
+@dataclass
+class CB_OutputIF:
+    detection_result: State = None
+    action_id: int = None
+    reason: str = None
 
 
 class VLMDetector:
@@ -51,9 +65,11 @@ class VLMDetector:
             print(f"Warning: OpenAI client not available: {e}")
             return None, use_azure
 
-    def CB_NORMAL(self, images: list[np.ndarray]) -> tuple[State, int]:
+    def CB_NORMAL(self, input_data: CB_InputIF) -> CB_OutputIF:
         """Detect anomalies and suggest actions using VLM"""
-        openai_images = [self._transform_image_for_openai(img) for img in images]
+        openai_images = [
+            self._transform_image_for_openai(img) for img in input_data.images
+        ]
 
         # messagesの作成
         content = []
@@ -79,12 +95,14 @@ class VLMDetector:
 
         return self._parse_CB_NORMAL_response(response)
 
-    def CB_RECOVERY(self, images: list[np.ndarray], action_id: int) -> tuple[RDR, str]:
+    def CB_RECOVERY(self, input_data: CB_InputIF) -> CB_OutputIF:
         """Check if the system is recovering from an anomaly"""
-        openai_images = [self._transform_image_for_openai(img) for img in images]
+        openai_images = [
+            self._transform_image_for_openai(img) for img in input_data.images
+        ]
 
         # Get action instruction based on action_id
-        language_instruction = ps.RECOVERY_ACTION_LIST[action_id][
+        language_instruction = ps.RECOVERY_ACTION_LIST[input_data.action_id][
             "language_instruction"
         ]
 
@@ -109,11 +127,11 @@ class VLMDetector:
 
         return self._parse_CB_RECOVERY_response(response)
 
-    def CB_VERIFICATION(
-        self, images: list[np.ndarray], action_id: int
-    ) -> tuple[VDR, int, str]:
+    def CB_VERIFICATION(self, input_data: CB_InputIF) -> CB_OutputIF:
         """Verify if the anomaly has been resolved"""
-        openai_images = [self._transform_image_for_openai(img) for img in images]
+        openai_images = [
+            self._transform_image_for_openai(img) for img in input_data.images
+        ]
 
         # messagesの作成
         content = []
@@ -138,7 +156,7 @@ class VLMDetector:
 
         return self._parse_CB_VERIFICATION_response(response)
 
-    def _parse_CB_NORMAL_response(self, response) -> tuple[State, int]:
+    def _parse_CB_NORMAL_response(self, response) -> CB_OutputIF:
         """Parse and validate anomaly detection response"""
         try:
             response_text = response.choices[0].message.content
@@ -165,16 +183,20 @@ class VLMDetector:
                 )
 
             # Convert string to State enum
-            return ADR(detection_result_str), action_id, reason
+            return CB_OutputIF(
+                detection_result=ADR(detection_result_str),
+                action_id=action_id,
+                reason=reason,
+            )
 
         except (json.JSONDecodeError, KeyError, AttributeError, ValueError) as e:
             print(f"Error parsing anomaly detection response: {e}")
             print(
                 f"Raw response: {response.choices[0].message.content if response.choices else 'No response'}"
             )
-            return None, None, None
+            return CB_OutputIF(detection_result=None, action_id=None, reason=None)
 
-    def _parse_CB_RECOVERY_response(self, response) -> tuple[RDR, str]:
+    def _parse_CB_RECOVERY_response(self, response) -> CB_OutputIF:
         """Parse and validate recovery state response"""
         try:
             response_text = response.choices[0].message.content
@@ -198,16 +220,20 @@ class VLMDetector:
                 )
 
             # Convert string to RDR enum
-            return RDR(detection_result_str), reason
+            return CB_OutputIF(
+                detection_result=RDR(detection_result_str),
+                action_id=None,
+                reason=reason,
+            )
 
         except (json.JSONDecodeError, KeyError, AttributeError, ValueError) as e:
             print(f"Error parsing recovery state response: {e}")
             print(
                 f"Raw response: {response.choices[0].message.content if response.choices else 'No response'}"
             )
-            return None, None
+            return CB_OutputIF(detection_result=None, action_id=None, reason=None)
 
-    def _parse_CB_VERIFICATION_response(self, response) -> tuple[VDR, int, str]:
+    def _parse_CB_VERIFICATION_response(self, response) -> CB_OutputIF:
         """Parse and validate verification state response"""
         try:
             response_text = response.choices[0].message.content
@@ -234,14 +260,18 @@ class VLMDetector:
                 )
 
             # Convert string to VDR enum
-            return VDR(detection_result_str), action_id, reason
+            return CB_OutputIF(
+                detection_result=VDR(detection_result_str),
+                action_id=action_id,
+                reason=reason,
+            )
 
         except (json.JSONDecodeError, KeyError, AttributeError, ValueError) as e:
             print(f"Error parsing verification state response: {e}")
             print(
                 f"Raw response: {response.choices[0].message.content if response.choices else 'No response'}"
             )
-            return None, None, None
+            return CB_OutputIF(detection_result=None, action_id=None, reason=None)
 
     def _transform_image_for_openai(self, image: np.ndarray) -> str:
         """Convert OpenCV image to base64 format for OpenAI API"""
@@ -277,8 +307,8 @@ class VLMMonitor:
         )
         self.vlm = VLMDetector()
 
-    def get_callback(self):
-        return getattr(self.vlm, self._current_cb_name())
+    def call_current_CB(self, CB_Interface: CB_InputIF) -> CB_OutputIF:
+        return getattr(self.vlm, self._current_cb_name())(input_data=CB_Interface)
 
     def write_mermaid(self):
         lines = [
