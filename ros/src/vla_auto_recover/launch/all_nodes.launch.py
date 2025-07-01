@@ -12,18 +12,25 @@ def generate_launch_description():
                 name="camera",
                 output="screen",
             ),
-            # VLA Controller Node
-            Node(
-                package="vla_auto_recover",
-                executable="vla_controller_node",
-                name="vla_controller",
-                output="screen",
-            ),
             # VLM Monitor Node
             Node(
                 package="vla_auto_recover",
                 executable="vlm_monitor_node",
                 name="vlm_monitor",
+                output="screen",
+            ),
+            # State Manager Node
+            Node(
+                package="vla_auto_recover",
+                executable="state_manager_node",
+                name="state_manager",
+                output="screen",
+            ),
+            # VLA Controller Node
+            Node(
+                package="vla_auto_recover",
+                executable="vla_controller_node",
+                name="vla_controller",
                 output="screen",
             ),
         ]

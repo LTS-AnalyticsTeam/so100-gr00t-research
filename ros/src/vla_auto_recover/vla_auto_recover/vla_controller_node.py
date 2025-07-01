@@ -3,8 +3,8 @@
 import rclpy
 import queue
 from rclpy.node import Node
-from vla_interfaces.msg import Action
 from sensor_msgs.msg import Image
+from std_msgs.msg import Int32
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
 
@@ -16,12 +16,12 @@ class VLAControllerNode(Node):
         # No Publisher
 
         # ------ Subscribers ------
-        self.action_sub = self.create_subscription(
-            Action, "/action", self._cb_change_action, 10
+        self.action_id_sub = self.create_subscription(
+            Int32, "/action_id", self._cb_change_action, 10
         )
         self.image_sub = self.create_subscription(
             Image,
-            "/image",
+            "/image/vla",
             self._cb_save_image,
             qos_profile=QoSProfile(
                 reliability=ReliabilityPolicy.BEST_EFFORT,  # 欠けてもいいから最新を速く
@@ -35,7 +35,7 @@ class VLAControllerNode(Node):
 
         self._img_queue = queue.Queue(maxsize=1)
 
-    def _cb_change_action(self, msg: Action):
+    def _cb_change_action(self, msg: Int32):
         """Handle incoming recovery action requests"""
         # 1. _timer_exec_actionを止める
         # 2. Home Positionに戻す
@@ -48,8 +48,7 @@ class VLAControllerNode(Node):
         except queue.Full:
             pass  # 古い画像は捨てる
 
-    def _timer_exec_action(self):
-        """Periodic status publishing"""
+    def _timer_exec_action(self): ...
 
 
 def main(args=None):

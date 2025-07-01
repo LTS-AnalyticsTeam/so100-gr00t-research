@@ -2,7 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
-from vla_interfaces.msg import Action
+from vla_interfaces.msg import DetectionResult, State
 from sensor_msgs.msg import Image
 from .processing.vlm_monitor import VLMMonitor
 
@@ -13,26 +13,28 @@ class VLMMonitorNode(Node):
         super().__init__("vlm_monitor")
 
         # ------ Publishers ------
-        self.action_pub = self.create_publisher(Action, "/action", 10)
+        self.detection_result_pub = self.create_publisher(
+            DetectionResult, "/detection_result", 10
+        )
 
         # ------ Subscribers ------
-        self.image_sub = self.create_subscription(Image, "/image", self._cb_monitor, 10)
+        self.image_sub = self.create_subscription(
+            Image, "/image/vlm", self._cb_put_queue, 10
+        )
+        self.state_change_sub = self.create_subscription(
+            State, "/state_change", self._cb_change_state, 10
+        )
 
         # ------ Timers ------
-        self.timer = self.create_timer(3.0, self._timer_status_logger)
+        # No timers needed for this node
 
         self.vlm_monitor = VLMMonitor()
-        self.logger = self.get_logger()
-        self.diagnostic_status = {
-            "message": "VLM Monitor is running",
-        }
 
-    def _cb_monitor(self, msg: Image):
-        """Handle camera data for VLM analysis"""
+    def _cb_put_queue(self, msg: Image): ...
 
-    def _timer_status_logger(self):
-        """Periodic state publishing"""
-        self.logger.info(self.diagnostic_status)
+    def _cb_change_state(self, msg: State): ...
+
+    def _monitor_worker(self): ...
 
 
 def main(args=None):

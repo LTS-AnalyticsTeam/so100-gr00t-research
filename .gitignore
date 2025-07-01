@@ -4,7 +4,7 @@ src/data
 logs
 src/vlm_node/vlm_node/vlm_node.py.backup
 install
-
+.github
 
 # Project specific definition
 gr00t-model

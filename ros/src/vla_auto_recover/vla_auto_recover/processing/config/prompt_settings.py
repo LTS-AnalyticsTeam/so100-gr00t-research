@@ -1,8 +1,8 @@
 from .system_state import State, ADR, RDR, VDR
 
 # ===========================================================================================
-NORMAL_ACTION_ID = 0
-NORMAL_LANGUAGE_INSTRUCTION = "move blocks from tray to matching dishes."
+RUNNING_ACTION_ID = 0
+RUNNING_LANGUAGE_INSTRUCTION = "move blocks from tray to matching dishes."
 
 # ===========================================================================================
 RECOVERY_ACTION_LIST = {
@@ -13,7 +13,7 @@ RECOVERY_ACTION_LIST = {
 # ===========================================================================================
 GENERAL_PROMPT = f"""
 あなたは、ロボットアームに対して指令を出す役割を担っています。
-現在、<normal_action>{NORMAL_LANGUAGE_INSTRUCTION}<normal_action>を実行しています。
+現在、<normal_action>{RUNNING_LANGUAGE_INSTRUCTION}<normal_action>を実行しています。
 ロボットアームが実行しているタスクは、トレイからブロックを同じ色の皿に移動するタスクに関するものです。
 
 # 正常状態とは
@@ -53,7 +53,7 @@ CB_RUNNING_JSON_SCHEMA = {
             },
             "action_id": {
                 "type": "integer",
-                "enum": [NORMAL_ACTION_ID] + list(RECOVERY_ACTION_LIST.keys()),
+                "enum": [RUNNING_ACTION_ID] + list(RECOVERY_ACTION_LIST.keys()),
                 "description": "次実行すべきaction_id",
             },
             "detection_result": {
@@ -137,7 +137,7 @@ CB_VERIFICATION_JSON_SCHEMA = {
             },
             "action_id": {
                 "type": "integer",
-                "enum": [NORMAL_ACTION_ID] + list(RECOVERY_ACTION_LIST.keys()),
+                "enum": [RUNNING_ACTION_ID] + list(RECOVERY_ACTION_LIST.keys()),
                 "description": "次実行すべきaction_id。異常状態がない場合は、0を指定してください。",
             },
             "detection_result": {

@@ -2,7 +2,6 @@
 
 import rclpy
 from rclpy.node import Node
-from vla_interfaces.msg import Action
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 import time
@@ -13,16 +12,19 @@ class CameraNode(Node):
         super().__init__("camera")
 
         # ------ Publishers ------
-        self.image_pub = self.create_publisher(Image, "/image", 10)
+        self.image_pub = self.create_publisher(Image, "/image/vlm", 10)
+        self.image_pub = self.create_publisher(Image, "/image/vla", 10)
 
         # ------ Subscribers ------
         # No Subscriber
 
         # ------ Timers ------
-        self.timer = self.create_timer(0.5, self._cb_capture_image)
+        self.timer = self.create_timer(0.5, self._cb_publish_image)
 
-    def _cb_capture_image(self):
-        """Periodic camera data publishing"""
+    def _cb_publish_image(self):
+        msg = Image()
+        # Fill the Image message with data
+        self.image_pub.publish(msg)
 
 
 def main(args=None):

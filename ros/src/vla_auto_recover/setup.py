@@ -26,6 +26,7 @@ setup(
         "console_scripts": [
             "vlm_monitor_node = vla_auto_recover.vlm_monitor_node:main",
             "vla_controller_node = vla_auto_recover.vla_controller_node:main",
+            "state_manager_node = vla_auto_recover.state_manager_node:main",
             "camera_node = vla_auto_recover.camera_node:main",
         ],
     },

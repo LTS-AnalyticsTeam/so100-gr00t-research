@@ -32,15 +32,19 @@ class BaseModel:
 
     def CB_RUNNING(self, input_data: CB_InputIF) -> CB_OutputIF:
         print("call: CB_RUNNING")
+        return CB_OutputIF()
 
     def CB_RECOVERY(self, input_data: CB_InputIF) -> CB_OutputIF:
         print("call: CB_RECOVERY")
+        return CB_OutputIF()
 
     def CB_VERIFICATION(self, input_data: CB_InputIF) -> CB_OutputIF:
         print("call: CB_VERIFICATION")
+        return CB_OutputIF()
 
     def CB_END(self, input_data: CB_InputIF) -> CB_OutputIF:
         print("call: CB_END")
+        return CB_OutputIF()
 
 
 class VLMDetector(BaseModel):
@@ -92,7 +96,7 @@ class VLMDetector(BaseModel):
         # messagesの作成
         content = []
         prompt = ps.CB_RUNNING_PROMPT.format(
-            language_instruction=ps.NORMAL_LANGUAGE_INSTRUCTION,
+            language_instruction=ps.RUNNING_LANGUAGE_INSTRUCTION,
             recovery_action_list=json.dumps(
                 ps.RECOVERY_ACTION_LIST, indent=2, ensure_ascii=False
             ),
@@ -110,8 +114,8 @@ class VLMDetector(BaseModel):
                 "json_schema": ps.CB_RUNNING_JSON_SCHEMA,
             },
         )
-
-        return self._parse_CB_RUNNING_response(response)
+        output_data = self._parse_CB_RUNNING_response(response)
+        return output_data
 
     def CB_RECOVERY(self, input_data: CB_InputIF) -> CB_OutputIF:
         """Check if the system is recovering from an anomaly"""
@@ -142,8 +146,10 @@ class VLMDetector(BaseModel):
                 "json_schema": ps.CB_RECOVERY_JSON_SCHEMA,
             },
         )
-
-        return self._parse_CB_RECOVERY_response(response)
+        output_data = self._parse_CB_RECOVERY_response(response)
+        # CB_RECOVERYではアクションを変えない。
+        output_data.action_id = input_data.action_id
+        return output_data
 
     def CB_VERIFICATION(self, input_data: CB_InputIF) -> CB_OutputIF:
         """Verify if the anomaly has been resolved"""
@@ -171,11 +177,11 @@ class VLMDetector(BaseModel):
                 "json_schema": ps.CB_VERIFICATION_JSON_SCHEMA,
             },
         )
-
-        return self._parse_CB_VERIFICATION_response(response)
+        output_data = self._parse_CB_VERIFICATION_response(response)
+        return output_data
 
     def CB_END(self, input_data: CB_InputIF) -> CB_OutputIF:
-        print("call: CB_END")
+        return CB_OutputIF()
 
     def _parse_CB_RUNNING_response(self, response) -> CB_OutputIF:
         """Parse and validate anomaly detection response"""
@@ -243,7 +249,7 @@ class VLMDetector(BaseModel):
             # Convert string to RDR enum
             return CB_OutputIF(
                 detection_result=RDR(detection_result_str),
-                action_id=None,
+                action_id=self.action_id,
                 reason=reason,
             )
 
@@ -332,6 +338,7 @@ class VLMMonitor:
             transitions=self.TRANSITIONS,
             initial=State.RUNNING.value,
         )
+        self.action_id = ps.RUNNING_ACTION_ID
 
     def step(self, input_data: CB_InputIF) -> CB_OutputIF:
         """Execute a single step of the state machine"""
@@ -339,6 +346,7 @@ class VLMMonitor:
         output_data = self.call_CB(input_data)
         # 状態遷移の実行
         self.transition(output_data)
+        self.action_id = output_data.action_id
         return output_data
 
     def call_CB(self, input_data: CB_InputIF) -> CB_OutputIF:

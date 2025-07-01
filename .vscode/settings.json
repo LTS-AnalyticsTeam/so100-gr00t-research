@@ -1,4 +1,19 @@
 {
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true
+    },
+    // 検索結果にも出したくなければ
+    "search.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true
+    },
+    "python.defaultInterpreterPath": "/opt/venv/bin/python",
+    "python.testing.pytestPath": "/opt/venv/bin/pytest",
+    "python.testing.pytestArgs": [
+        "/workspace/ros/src/vla_auto_recover",
+        "-v"
+    ],
 }

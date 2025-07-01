@@ -1,2 +1,0 @@
-int8 action_id
-string language_instruction
