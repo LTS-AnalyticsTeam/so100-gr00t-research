@@ -2,7 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
-from .processing.vlm_monitor import VLMMonitor
+from .processing.vlm_detector import VLMDetector
 from vla_interfaces.msg import DetectionResult
 from sensor_msgs.msg import Image
 from std_msgs.msg import Int32
@@ -25,7 +25,7 @@ class StateManagerNode(Node):
         # ------ Timers ------
         self.timer = self.create_timer(3.0, self._timer_state_logger)
 
-        self.vlm_monitor = VLMMonitor()
+        self.vlm_detector = VLMDetector()
 
     def _cb_transition(self, msg: DetectionResult): ...
 

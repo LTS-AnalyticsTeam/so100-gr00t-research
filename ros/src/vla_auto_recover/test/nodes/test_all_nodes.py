@@ -13,10 +13,16 @@ def launch_description():
         name="camera",
         output="screen",
     )
-    vlm_monitor = Node(
+    vlm_detector = Node(
         package="vla_auto_recover",
-        executable="vlm_monitor_node",
-        name="vlm_monitor",
+        executable="vlm_detector_node",
+        name="vlm_detector",
+        output="screen",
+    )
+    state_manager = Node(
+        package="vla_auto_recover",
+        executable="state_manager_node",
+        name="state_manager",
         output="screen",
     )
     vla_controller = Node(
@@ -29,7 +35,7 @@ def launch_description():
     return launch.LaunchDescription(
         [
             camera,
-            vlm_monitor,
+            vlm_detector,
             vla_controller,
             launch_pytest.actions.ReadyToTest(),
         ]

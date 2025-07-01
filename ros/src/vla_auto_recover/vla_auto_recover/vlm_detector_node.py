@@ -4,13 +4,13 @@ import rclpy
 from rclpy.node import Node
 from vla_interfaces.msg import DetectionResult, State
 from sensor_msgs.msg import Image
-from .processing.vlm_monitor import VLMMonitor
+from .processing.vlm_detector import VLMDetector
 
 
-class VLMMonitorNode(Node):
+class VLMDetectorNode(Node):
 
     def __init__(self):
-        super().__init__("vlm_monitor")
+        super().__init__("vlm_detector")
 
         # ------ Publishers ------
         self.detection_result_pub = self.create_publisher(
@@ -28,22 +28,22 @@ class VLMMonitorNode(Node):
         # ------ Timers ------
         # No timers needed for this node
 
-        self.vlm_monitor = VLMMonitor()
+        self.vlm_detector = VLMDetector()
 
     def _cb_put_queue(self, msg: Image): ...
 
     def _cb_change_state(self, msg: State): ...
 
-    def _monitor_worker(self): ...
+    def _detector_worker(self): ...
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = VLMMonitorNode()
+    node = VLMDetectorNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("VLMMonitorNode shutting down")
+        node.get_logger().info("VLMDetectorNode shutting down")
     finally:
         node.destroy_node()
         rclpy.shutdown()

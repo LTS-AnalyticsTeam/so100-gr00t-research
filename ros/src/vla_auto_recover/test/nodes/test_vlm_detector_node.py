@@ -7,16 +7,16 @@ from launch_ros.actions import Node
 @launch_pytest.fixture
 def launch_description():
     """Launch description for all nodes."""
-    vlm_monitor = Node(
+    vlm_detector = Node(
         package="vla_auto_recover",
-        executable="vlm_monitor_node",
-        name="vlm_monitor",
+        executable="vlm_detector_node",
+        name="vlm_detector",
         output="screen",
     )
 
     return launch.LaunchDescription(
         [
-            vlm_monitor,
+            vlm_detector,
             launch_pytest.actions.ReadyToTest(),
         ]
     )

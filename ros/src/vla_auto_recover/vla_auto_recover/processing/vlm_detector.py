@@ -6,29 +6,25 @@ from pathlib import Path
 from dotenv import load_dotenv
 import numpy as np
 from .config import prompt_settings as ps
-from .config.system_state import ADR, RDR, VDR, State
-from enum import Enum
-from transitions import Machine
-from transitions.extensions import GraphMachine
-from dataclasses import dataclass
-
-CB_PREFIX = "CB_"
+from .config.system_settings import ADR, RDR, VDR, State
+from .config.system_settings import CB_InputIF, CB_OutputIF, CB_PREFIX
 
 
-@dataclass
-class CB_InputIF:
-    images: list[np.ndarray] = None
-    action_id: int = None
+class BaseDetector:
 
-
-@dataclass
-class CB_OutputIF:
-    detection_result: ADR | RDR | VDR = None
-    action_id: int = None
-    reason: str = None
-
-
-class BaseModel:
+    def call_CB(self, state: State, input_data: CB_InputIF) -> CB_OutputIF:
+        # Callbackの実行
+        if state.value == "RUNNING":
+            output_data = self.CB_RUNNING(input_data)
+        elif state.value == "RECOVERY":
+            output_data = self.CB_RECOVERY(input_data)
+        elif state.value == "VERIFICATION":
+            output_data = self.CB_VERIFICATION(input_data)
+        elif state.value == "END":
+            output_data = self.CB_END(input_data)
+        else:
+            raise ValueError(f"Unknown state: {state.value}")
+        return output_data
 
     def CB_RUNNING(self, input_data: CB_InputIF) -> CB_OutputIF:
         print("call: CB_RUNNING")
@@ -47,7 +43,7 @@ class BaseModel:
         return CB_OutputIF()
 
 
-class VLMDetector(BaseModel):
+class VLMDetector(BaseDetector):
     """Visual Language Model for anomaly detection and action suggestion"""
 
     MODEL = "gpt-4.1"
@@ -249,7 +245,7 @@ class VLMDetector(BaseModel):
             # Convert string to RDR enum
             return CB_OutputIF(
                 detection_result=RDR(detection_result_str),
-                action_id=self.action_id,
+                action_id=None,
                 reason=reason,
             )
 
@@ -305,100 +301,3 @@ class VLMDetector(BaseModel):
         _, buffer = cv2.imencode(".jpg", image)
         base64_image = base64.b64encode(buffer).decode("utf-8")
         return f"data:image/jpeg;base64,{base64_image}"
-
-
-class VLMMonitor:
-
-    STATES = [
-        State.RUNNING.value,
-        State.RECOVERY.value,
-        State.VERIFICATION.value,
-        State.END.value,
-    ]
-
-    TRANSITIONS = [
-        {"trigger": ADR.NORMAL.value, "source": State.RUNNING.value, "dest": State.RUNNING.value},
-        {"trigger": ADR.ANOMALY.value, "source": State.RUNNING.value, "dest": State.RECOVERY.value},
-        {"trigger": ADR.COMPLETION.value, "source": State.RUNNING.value, "dest": State.END.value},
-        {"trigger": RDR.UNRECOVERED.value, "source": State.RECOVERY.value, "dest": State.RECOVERY.value},
-        {"trigger": RDR.RECOVERED.value, "source": State.RECOVERY.value, "dest": State.VERIFICATION.value},
-        {"trigger": VDR.SOLVED.value, "source": State.VERIFICATION.value, "dest": State.RUNNING.value},
-        {"trigger": VDR.UNSOLVED.value, "source": State.VERIFICATION.value, "dest": State.RECOVERY.value},
-    ] # fmt: skip
-
-    def __init__(self, debug=False):
-        if debug:
-            self.mdl = BaseModel()
-        else:
-            self.mdl = VLMDetector()
-
-        self.machine = Machine(
-            model=self.mdl,
-            states=self.STATES,
-            transitions=self.TRANSITIONS,
-            initial=State.RUNNING.value,
-        )
-        self.action_id = ps.RUNNING_ACTION_ID
-
-    def step(self, input_data: CB_InputIF) -> CB_OutputIF:
-        """Execute a single step of the state machine"""
-        # Callbackの実行
-        output_data = self.call_CB(input_data)
-        # 状態遷移の実行
-        self.transition(output_data)
-        self.action_id = output_data.action_id
-        return output_data
-
-    def call_CB(self, input_data: CB_InputIF) -> CB_OutputIF:
-        # Callbackの実行
-        call_back_name = CB_PREFIX + self.mdl.state
-        call_back_func = getattr(self.mdl, call_back_name)
-        output_data = call_back_func(input_data)
-        return output_data
-
-    def transition(self, detection_result: ADR | RDR | VDR) -> None:
-        """TRANSITIONSのシナリオに基づいて状態遷移を実行"""
-        # 状態遷移の実行
-        trigger_name = detection_result.value
-        transition_func = getattr(self.mdl, trigger_name)
-        transition_func()
-        return None
-
-    @classmethod
-    def print_mermaid(cls):
-        mdl = VLMDetector()
-        machine = GraphMachine(
-            model=mdl,
-            states=cls.STATES,
-            transitions=cls.TRANSITIONS,
-            initial="IDLE",
-            graph_engine="mermaid",  # ← ここがポイント
-            show_conditions=True,  # 任意: ガードをエッジに表示
-        )
-        mermaid_src = mdl.get_graph().source
-        print(mermaid_src)
-        return None
-
-    @classmethod
-    def pprint_mermaid(cls):
-        lines = [
-            "```mermaid",
-            "---",
-            "config:",
-            "  theme: redux",
-            "  flowchart:",
-            "    nodeSpacing: 300",
-            "    rankSpacing: 60",
-            "    curve: basis",
-            "---",
-        ]
-        lines.append("flowchart TD")
-        for state in cls.STATES:
-            lines.append(f"    {state}({state})")
-            lines.append(f"    {state}({state}) --> {CB_PREFIX}{state}{{{CB_PREFIX}{state}}}") # fmt: skip
-        for linkage in cls.TRANSITIONS:
-            lines.append(
-                f"    {CB_PREFIX}{linkage['source']}{{{CB_PREFIX}{linkage['source']}}} -- {linkage['trigger']} --> {linkage['dest']}({linkage['dest']})"
-            )
-        lines.append("```")
-        return "\n".join(lines)

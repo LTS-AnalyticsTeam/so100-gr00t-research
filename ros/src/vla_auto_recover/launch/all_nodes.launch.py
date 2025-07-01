@@ -12,11 +12,11 @@ def generate_launch_description():
                 name="camera",
                 output="screen",
             ),
-            # VLM Monitor Node
+            # VLM Detector Node
             Node(
                 package="vla_auto_recover",
-                executable="vlm_monitor_node",
-                name="vlm_monitor",
+                executable="vlm_detector_node",
+                name="vlm_detector",
                 output="screen",
             ),
             # State Manager Node
