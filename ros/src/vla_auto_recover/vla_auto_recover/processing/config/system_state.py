@@ -3,10 +3,10 @@ from enum import Enum
 
 
 class State(Enum):
-    NORMAL = "NORMAL"
+    RUNNING = "RUNNING"
     RECOVERY = "RECOVERY"
     VERIFICATION = "VERIFICATION"
-    COMPLETION = "COMPLETION"
+    END = "END"
 
 
 class ADR(Enum):
@@ -32,13 +32,13 @@ class VDR(Enum):
 
 
 class SystemState:
-    states = [State.NORMAL.value, State.RECOVERY.value, State.VERIFICATION.value]
+    states = [State.RUNNING.value, State.RECOVERY.value, State.VERIFICATION.value]
     transitions = [
-        {"trigger": ADR.NORMAL.value, "source": State.NORMAL.value, "dest": State.NORMAL.value},
-        {"trigger": ADR.ANOMALY.value, "source": State.NORMAL.value, "dest": State.RECOVERY.value},
+        {"trigger": ADR.NORMAL.value, "source": State.RUNNING.value, "dest": State.RUNNING.value},
+        {"trigger": ADR.ANOMALY.value, "source": State.RUNNING.value, "dest": State.RECOVERY.value},
         {"trigger": RDR.UNRECOVERED.value, "source": State.RECOVERY.value, "dest": State.RECOVERY.value},
         {"trigger": RDR.RECOVERED.value, "source": State.RECOVERY.value, "dest": State.VERIFICATION.value},
-        {"trigger": VDR.SOLVED.value, "source": State.VERIFICATION.value, "dest": State.NORMAL.value},
+        {"trigger": VDR.SOLVED.value, "source": State.VERIFICATION.value, "dest": State.RUNNING.value},
         {"trigger": VDR.UNSOLVED.value, "source": State.VERIFICATION.value, "dest": State.RECOVERY.value},
     ] # fmt: skip
 
@@ -47,7 +47,7 @@ class SystemState:
             model=self,
             states=self.states,
             transitions=self.transitions,
-            initial=State.NORMAL.value,
+            initial=State.RUNNING.value,
         )
 
     def current_cb(self) -> str:

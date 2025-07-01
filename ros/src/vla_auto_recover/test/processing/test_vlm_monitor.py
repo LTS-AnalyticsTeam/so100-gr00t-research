@@ -3,9 +3,10 @@ import cv2
 import numpy as np
 from pathlib import Path
 from vla_auto_recover.processing.vlm_monitor import (
-    VLMMonitor,
     VLMDetector,
     CB_InputIF,
+    build_state_machine,
+    pprint_mermaid,
 )
 from vla_auto_recover.processing.config.system_state import ADR, RDR, VDR, State
 
@@ -87,8 +88,8 @@ def test_CB_VERIFICATION(pattern, phase, result_answer, action_id):
 
 
 def test_show_state_transition_diagram():
-    vlm_monitor = VLMMonitor()  # mermaid形式で状態遷移図を出力
-    print(vlm_monitor.write_mermaid())
+    # mermaid形式で状態遷移図を出力
+    print(pprint_mermaid())
 
 
 def test_VLMMonitor_state_transition():
@@ -104,77 +105,64 @@ def test_VLMMonitor_state_transition():
     8. 最終的にRDR.RECOVEREDの結果を得たと仮定し、VERIFICATION状態に遷移する。
     9. SOLVEDとなり、問題が解決されたため、NORMAL状態に遷移する。
     """
-    vlm_monitor = VLMMonitor()
+    vlm, machine = build_state_machine()
 
     # 初期状態はNORMALであることを確認
-    assert vlm_monitor.state == State.NORMAL.value, "Initial state should be NORMAL"
+    assert vlm.state == State.RUNNING.value, "Initial state should be NORMAL"
     step = 0
     for i in range(10):
         # 10回ADR.NORMALを呼び出しても状態は変わらない
-        vlm_monitor.NORMAL()
-        print(
-            f"{step}. state: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}"
-        )
+        vlm.NORMAL()
+        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
         step += 1
-        assert vlm_monitor.state == State.NORMAL.value
+        assert vlm.state == State.RUNNING.value
     else:
         # 最終的にADR.ANOMALYの結果を得たと仮定し、RECOVERY状態に遷移する。
-        vlm_monitor.ANOMALY()
-        print(
-            f"{step}. state: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}"
-        )
+        vlm.ANOMALY()
+        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
         step += 1
-        assert vlm_monitor.state == State.RECOVERY.value
+        assert vlm.state == State.RECOVERY.value
 
     for i in range(10):
         # 10回RDR.UNRECOVEREDを呼び出しても状態は変わらない
-        vlm_monitor.UNRECOVERED()
-        print(
-            f"{step}. state: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}"
-        )
+        vlm.UNRECOVERED()
+        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
         step += 1
-        assert vlm_monitor.state == State.RECOVERY.value
+        assert vlm.state == State.RECOVERY.value
     else:
         # 最終的にRDR.RECOVEREDの結果を得たと仮定し、VERIFICATION状態に遷移する。
-        vlm_monitor.RECOVERED()
-        print(
-            f"{step}. state: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}"
-        )
+        vlm.RECOVERED()
+        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
         step += 1
-        assert vlm_monitor.state == State.VERIFICATION.value
+        assert vlm.state == State.VERIFICATION.value
 
     # UNSOLVEDとなり、未解決な問題があるため、再度RECOVERY状態に遷移する。
 
-    vlm_monitor.UNSOLVED()
-    print(f"{step}. state: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}")
+    vlm.UNSOLVED()
+    print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
     step += 1
-    assert vlm_monitor.state == State.RECOVERY.value
+    assert vlm.state == State.RECOVERY.value
 
     for i in range(10):
         # 10回RDR.UNRECOVEREDを呼び出しても状態は変わらない
-        vlm_monitor.UNRECOVERED()
-        print(
-            f"{step}. state: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}"
-        )
+        vlm.UNRECOVERED()
+        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
         step += 1
-        assert vlm_monitor.state == State.RECOVERY.value
+        assert vlm.state == State.RECOVERY.value
     else:
         # 最終的にRDR.RECOVEREDの結果を得たと仮定し、VERIFICATION状態に遷移する。
-        vlm_monitor.RECOVERED()
-        print(
-            f"{step}. state: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}"
-        )
+        vlm.RECOVERED()
+        print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
         step += 1
-        assert vlm_monitor.state == State.VERIFICATION.value
+        assert vlm.state == State.VERIFICATION.value
 
     # SOLVEDとなり、問題が解決されたため、NORMAL状態に遷移する。
-    vlm_monitor.SOLVED()
-    print(f"{step}. state: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}")
+    vlm.SOLVED()
+    print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
     step += 1
-    assert vlm_monitor.state == State.NORMAL.value
+    assert vlm.state == State.RUNNING.value
 
-    vlm_monitor.COMPLETION()
-    print(f"{step}. state: {vlm_monitor.state}, CB: {vlm_monitor._current_cb_name()}")
+    vlm.COMPLETION()
+    print(f"{step}. state: {vlm.state}, CB: CB_{vlm.state}")
     step += 1
-    assert vlm_monitor.state == State.COMPLETION.value
-    assert vlm_monitor.state == State.COMPLETION.value
+    assert vlm.state == State.END.value
