@@ -31,12 +31,7 @@ services:
     environment:
       - ROS_DOMAIN_ID=42
       - DISPLAY=:1
-    networks:
-      - ros_network
+    network_mode: host
     stdin_open: true
     tty: true
     privileged: true
-
-networks:
-  ros_network:
-    driver: bridge
