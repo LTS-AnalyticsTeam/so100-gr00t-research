@@ -7,6 +7,7 @@ install
 .github
 __old__
 lerobot
+__camera_images__
 
 # Project specific definition
 gr00t-model
