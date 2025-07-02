@@ -13,16 +13,21 @@ class CameraNode(Node):
         super().__init__("camera")
 
         # ------ Publishers ------
-        self.image_pub = self.create_publisher(ImagePair, "/image/vlm", 10)
-        self.image_pub = self.create_publisher(ImagePair, "/image/vla", 10)
+        self.image_vlm_pub = self.create_publisher(ImagePair, "/image/vlm", 10)
+        self.image_vla_pub = self.create_publisher(ImagePair, "/image/vla", 10)
 
         # ------ Subscribers ------
         # No Subscriber
 
         # ------ Timers ------
-        self.timer = self.create_timer(0.5, self._cb_publish_image)
+        self.timer_vlm_camera = self.create_timer(0.5, self._cb_publish_image_vlm)
+        self.timer_vla_camera = self.create_timer(0.5, self._cb_publish_image_vla)
 
-    def _cb_publish_image(self): ...
+    def _cb_publish_image_vlm(self): ...
+
+    def _cb_publish_image_vla(self): ...
+
+    def _publish_image(self): ...
 
 
 def main(args=None):

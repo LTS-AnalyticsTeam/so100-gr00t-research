@@ -3,6 +3,10 @@ from enum import Enum
 from dataclasses import dataclass
 import numpy as np
 
+# from cv_bridge import CvBridge
+from vla_interfaces.msg._image_pair import ImagePair
+from vla_auto_recover.processing.utils.image_convert import imgmsg_to_ndarray
+
 
 class State(Enum):
     RUNNING = "RUNNING"
@@ -41,20 +45,21 @@ class CB_InputIF:
     images: list[np.ndarray] = None
     action_id: int = None
 
+    @classmethod
+    def from_msg(cls, msg: ImagePair, action_id: int):
+        # bridge = CvBridge()
+
+        center_cam: np.ndarray = imgmsg_to_ndarray(msg.center_cam)
+        right_cam: np.ndarray = imgmsg_to_ndarray(msg.right_cam)
+
+        return cls(
+            images=[center_cam, right_cam],
+            action_id=action_id,
+        )
+
 
 @dataclass
 class CB_OutputIF:
     detection_result: ADR | RDR | VDR = None
     action_id: int = None
     reason: str = None
-
-
-if __name__ == "__main__":
-    # Example usage
-    ss = SystemState()
-    print(ss.state)  # 現在の状態名が表示される
-    getattr(ss, ADR.ANOMALY.value)()
-    print(ss.state)  # 現在の状態名が表示される
-
-    # mermaid形式で状態遷移図を出力
-    print(ss.write_mermaid())

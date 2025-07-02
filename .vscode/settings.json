@@ -14,6 +14,7 @@
     "python.testing.pytestPath": "/opt/venv/bin/pytest",
     "python.testing.pytestArgs": [
         "/workspace/ros/src/vla_auto_recover",
+        "/workspace/ros/src/vla_interfaces",
         "-v"
     ],
 }

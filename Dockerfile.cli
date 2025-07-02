@@ -32,6 +32,7 @@ WORKDIR /workspace
 # ROSの設定を追加
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc && \
     echo "source /opt/venv/bin/activate" >> /root/.bashrc && \
+    echo "source /workspace/ros/install/setup.bash" >> /root/.bashrc && \
     echo "export ROS_DOMAIN_ID=0" >> /root/.bashrc
 
 # システムパッケージの競合を避けるため、仮想環境を作成

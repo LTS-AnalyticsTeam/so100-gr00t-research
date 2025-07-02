@@ -5,9 +5,7 @@ openai
 empy==3.3.4
 lark 
 pillow
-catkin_pkg
-ros2-graph 
-cv_bridge
+catkin_pkg 
 dotenv
 transitions
 pytest==7.4.4 # launch_pytestとの互換性の関係で、最新は8系だが7系を利用する。

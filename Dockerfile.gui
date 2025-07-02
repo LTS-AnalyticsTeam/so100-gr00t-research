@@ -77,6 +77,7 @@ WORKDIR /workspace
 RUN mkdir -p /workspace/ros_ws/src && \
     echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc && \
     echo "source /opt/venv/bin/activate" >> /root/.bashrc && \
+    echo "source /workspace/ros/install/setup.bash" >> /root/.bashrc && \
     echo "export ROS_DOMAIN_ID=42" >> /root/.bashrc && \
     echo "cd /workspace" >> /root/.bashrc
 

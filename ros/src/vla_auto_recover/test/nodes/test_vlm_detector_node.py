@@ -2,9 +2,31 @@ import pytest
 import rclpy
 import launch
 import launch_pytest
+import time
 from launch_ros.actions import Node
-from sensor_msgs.msg import Image
 from vla_auto_recover.processing.utils.get_sample_image import get_sample_image
+from vla_auto_recover.processing.config.system_settings import State
+from vla_auto_recover.vlm_detector_node import VLMDetectorNode
+from vla_interfaces.msg import ImagePair
+from std_msgs.msg import String
+from rclpy.parameter import Parameter
+
+
+# ============ fixture ============
+@pytest.fixture
+def vlm_detector_node():
+    """Fixture to create and yield the VLMDetectorNode."""
+    rclpy.init()
+    node = VLMDetectorNode()
+    node.set_parameters(
+        [
+            Parameter("fps", value=5.0),
+            Parameter("worker_num", value=4),
+        ]
+    )
+    yield node
+    node.destroy_node()
+    rclpy.shutdown()
 
 
 @launch_pytest.fixture
@@ -25,60 +47,31 @@ def launch_description():
     )
 
 
-@pytest.mark.launch(fixture=launch_description)
-def test_all_nodes_startup(setup, launch_context):
-    """Test that all nodes start up successfully."""
-
-    # sbscribe to the vlm_detector node
-    rclpy.init()
-    node = rclpy.create_node("test_injector_node")
-
-    # image publisher
-    image_vlm_center_pub = node.create_publisher("/image/vlm/center")
-    image_vlm_right_pub = node.create_publisher("/image/vlm/right")
-
-    image_vlm_center_pub.publish(get_sample_image("normal", "start", "center"))
-    image_vlm_right_pub.publish(get_sample_image("normal", "start", "right"))
-
-    # state_change publisher
-    state_change_pub = node.create_publisher("/state_change")
-    state_change_pub.publish()
-
-    import time
-
-    time.sleep(1)
-
-
-@pytest.mark.launch(fixture=launch_description, shutdown=True)
-def test_all_nodes_shutdown(setup, launch_context):
-    """Test that all nodes shut down successfully."""
-    import time
-
-    time.sleep(1)
-
-
-# tests/test_internal.py
-import rclpy
-from vla_auto_recover.vlm_detector_node import VLMDetectorNode
-
-
 @pytest.fixture
-def vlm_detector_node():
-    rclpy.init()
-    node = VLMDetectorNode()  # 直接生成
-    yield node
-    node.destroy_node()
-    rclpy.shutdown()
+def image_pair_msg():
+    return ImagePair(
+        center_cam=get_sample_image("normal", "start", "center_cam"),
+        right_cam=get_sample_image("normal", "start", "right_cam"),
+    )
 
 
-def test_node_image_sub_cb(vlm_detector_node):
-    test_node = rclpy.create_node("test_node")
-    image_vlm_center_pub = test_node.create_publisher("/image/vlm/center")
-    image_vlm_right_pub = test_node.create_publisher("/image/vlm/right")
+# ============ Pythonクラスの実行による（ホワイトボックステスト） ============
+def test_cb_put_queue(vlm_detector_node: VLMDetectorNode, image_pair_msg: ImagePair):
+    """Test that the VLMDetectorNode initializes correctly."""
+    vlm_detector_node._cb_sub_put_queue(image_pair_msg)
+    assert image_pair_msg == vlm_detector_node.q_image_pair.get_nowait()
 
-    # Test the callback function with a sample image
-    center_image = get_sample_image("normal", "start", "center")
-    right_image = get_sample_image("normal", "start", "right")
 
-    # Check if the state is still RUNNING after processing the images
-    assert node.state == "RUNNING", f"Expected state RUNNING, got {node.state}"
+def test_cb_change_state(vlm_detector_node):
+    """Test the _cb_change_state callback."""
+    vlm_detector_node._cb_sub_change_state(String(data="RECOVERY"))
+    assert vlm_detector_node.state == State.RECOVERY
+
+
+def test_detection_worker(
+    vlm_detector_node: VLMDetectorNode, image_pair_msg: ImagePair
+):
+    assert vlm_detector_node.q_image_pair.empty()
+    vlm_detector_node.q_image_pair.put(image_pair_msg)
+    vlm_detector_node._detection_worker()
+    assert vlm_detector_node.q_result.qsize() == 1
