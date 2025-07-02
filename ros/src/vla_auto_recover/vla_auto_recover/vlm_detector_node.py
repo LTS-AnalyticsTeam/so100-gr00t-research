@@ -54,7 +54,7 @@ class VLMDetectorNode(Node):
 
         # Thread-safe queues
         self.q_image_pair = queue.Queue(maxsize=20)
-        self.q_result = queue.Queue()
+        self.q_detection_output = queue.Queue()
 
         # Worker pool management
         self.worker_pool = []
@@ -116,16 +116,22 @@ class VLMDetectorNode(Node):
                 action_id=self.action_id,
             )
             output_data = self.vlm_detector.call_CB(self.state, input_data)
-            self.q_result.put(output_data.detection_result.value)
+            self.q_detection_output.put(output_data.detection_result.value)
         except Exception as e:
             self.get_logger().error(f"Detection processing failed: {e}")
             return
 
     def _cb_timer_publish_result(self):
         """Callback to publish detection results at a fixed rate."""
-        if not self.q_result.empty():
-            result = self.q_result.get()
-            self.detection_result_pub.publish(String(data=result))
+        if not self.q_detection_output.empty():
+            output = self.q_detection_output.get()
+            self.detection_result_pub.publish(
+                DetectionOutput(
+                    detection_result=output.detection_result.value,
+                    action_id=output.action_id,
+                    reason=output.reason,
+                )
+            )
         else:
             self.get_logger().info("No detection result to publish.")
 

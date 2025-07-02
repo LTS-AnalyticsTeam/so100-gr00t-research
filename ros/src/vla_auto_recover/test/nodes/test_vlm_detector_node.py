@@ -74,4 +74,4 @@ def test_detection_worker(
     assert vlm_detector_node.q_image_pair.empty()
     vlm_detector_node.q_image_pair.put(image_pair_msg)
     vlm_detector_node._detection_worker()
-    assert vlm_detector_node.q_result.qsize() == 1
+    assert vlm_detector_node.q_detection_output.qsize() == 1
