@@ -7,7 +7,7 @@ from typing import Dict, Optional, Tuple
 import glob
 import datetime
 
-CAMRERA_DIR = Path(__file__).parent.joinpath("__camera_images__")
+CAMRERA_DIR = Path("/workspace/ros/src/vla_auto_recover/vla_auto_recover/processing/__camera_images__")
 
 
 class CameraSaver:
@@ -210,10 +210,10 @@ class CameraSaver:
         self.release_cameras()
 
 
-def main(interval=0.1, period_sec=60):
+def main(interval=0.1, period_sec=60, output_dir=str(CAMRERA_DIR)):
     """使用例"""
     # カメラセーバーを初期化
-    camera_saver = CameraSaver()
+    camera_saver = CameraSaver(output_dir=output_dir)
     
     # カメラを初期化
     if not camera_saver.initialize_cameras():
@@ -238,4 +238,10 @@ def main(interval=0.1, period_sec=60):
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Camera Saver Example")
+    parser.add_argument("--interval", type=float, default=0.1, help="Capture interval in seconds")
+    parser.add_argument("--period_sec", type=int, default=60, help="Total capture period in seconds")
+    parser.add_argument("--output_dir", type=str, default=str(CAMRERA_DIR), help="Output directory for saved images")
+    args = parser.parse_args()
+    main(args.interval, args.period_sec, args.output_dir)

@@ -10,6 +10,11 @@ RECOVERY_ACTION_LIST = {
     2: {"class": "ANOMALY RECOVERY ACTION", "situation": "Stacked dish on the other dish", "language_instruction": "Lift the stacked dish and set it down on the table."},
 }  # fmt: skip
 
+ACTION_LIST = {RUNNING_ACTION_ID: {"class": "NORMAL ACTION", "situation": "Moving blocks to matching dishes", "language_instruction": RUNNING_LANGUAGE_INSTRUCTION}} | RECOVERY_ACTION_LIST
+
+
+
+
 # ===========================================================================================
 GENERAL_PROMPT = f"""
 あなたは、ロボットアームに対して指令を出す役割を担っています。

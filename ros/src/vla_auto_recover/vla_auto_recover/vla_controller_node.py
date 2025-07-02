@@ -2,53 +2,103 @@
 
 import rclpy
 import queue
+import time
 from rclpy.node import Node
 from std_msgs.msg import Int32
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from vla_interfaces.msg import ImagePair
-
+from vla_auto_recover.processing.vla_controller import GR00TExecuter
+from vla_auto_recover.processing.utils.image_convert import imgmsg_to_ndarray
 
 class VLAControllerNode(Node):
     def __init__(self):
         super().__init__("vla_controller")
-
+        self.gr00t_executer = GR00TExecuter()
+        self.image_pair_queue = queue.Queue(maxsize=1)
+        
         # ------ Publishers ------
         # No Publisher
 
         # ------ Subscribers ------
-        self.action_id_sub = self.create_subscription(
-            Int32, "/action_id", self._cb_change_action, 10
-        )
         self.image_sub = self.create_subscription(
             ImagePair,
             "/image/vla",
-            self._cb_save_image,
+            self._cb_timer_save_image,
             qos_profile=QoSProfile(
                 reliability=ReliabilityPolicy.BEST_EFFORT,  # 欠けてもいいから最新を速く
                 history=HistoryPolicy.KEEP_LAST,  # 直近だけ保持して古いのは捨てる
                 depth=3,  # 最新の3つを保持
             ),
         )
+        self.action_id_sub = self.create_subscription(
+            Int32, "/action_id", self._cb_change_action, 10
+        )
 
         # ------ Timers ------
-        self.timer = self.create_timer(1.0, self._timer_exec_action)
+        self.timer_exec_action = self.create_timer(1.0, self._timer_exec_action)
 
-        self._img_queue = queue.Queue(maxsize=1)
+    def _cb_timer_save_image(self, msg: ImagePair):
+        """Save incoming image pair to the queue"""
+        # 画像ペアをキューに保存
+        try:
+            self.image_pair_queue.put_nowait(msg)
+        except queue.Full:
+            self.image_pair_queue.get()
+            self.image_pair_queue.put_nowait(msg)
 
     def _cb_change_action(self, msg: Int32):
         """Handle incoming recovery action requests"""
-        # 1. _timer_exec_actionを止める
-        # 2. Home Positionに戻す
-        # 3. アクションの変数を変更する
+        # アクションのIDを変更する
+        self.action_id = msg.data
+        # タイマーを停止
+        self.timer_exec_action.cancel() 
+        # Start Positionに戻す
+        self.gr00t_executer.go_back_start_position()
+        # タイマーをリセットして再開
+        self.timer_exec_action.reset()  
 
-    def _cb_save_image(self, msg: ImagePair):
-        """Handle camera data for VLA"""
+    def _timer_exec_action(self):
         try:
-            self._img_queue.put_nowait(msg)
-        except queue.Full:
-            pass  # 古い画像は捨てる
+            image_pair = self.image_pair_queue.get_nowait()
+        except queue.Empty:
+            return  # 画像がない場合は何もしない
 
-    def _timer_exec_action(self): ...
+        try:
+            self.gr00t_executer.act({
+                "center_cam": imgmsg_to_ndarray(image_pair.center_cam),
+                "right_cam": imgmsg_to_ndarray(image_pair.right_cam),
+            })
+        except Exception as e:
+            self.get_logger().error(f"Error during action execution: {e}")
+        
+        return None
+
+    def destroy_node(self):
+        # タイマーを停止
+        try:
+            if hasattr(self, 'timer_exec_action'):
+                self.timer_exec_action.cancel()
+        except Exception as e:
+            self.get_logger().error(f"Error canceling timer: {e}")
+        
+        # ロボットを初期位置に戻す
+        try:
+            self.gr00t_executer.go_back_start_position()
+        except Exception as e:
+            self.get_logger().error(f"Error returning to start position: {e}")
+        
+        # ロボット接続を切断
+        try:
+            if hasattr(self.gr00t_executer, 'robot') and self.gr00t_executer.robot:
+                self.gr00t_executer.robot.disconnect()
+        except Exception as e:
+            self.get_logger().error(f"Error disconnecting robot: {e}")
+        
+        # 親クラスのdestroy_nodeを呼び出し
+        try:
+            super().destroy_node()
+        except Exception as e:
+            self.get_logger().error(f"Error in parent destroy_node: {e}")
 
 
 def main(args=None):
