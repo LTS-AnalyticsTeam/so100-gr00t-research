@@ -27,20 +27,17 @@ class StateManagerNode(Node):
 
         self.state_manager = StateManager()
 
-    def _cb_state_transition(self, msg: String):
-        state_changed = self.state_manager.transition(get_DR(msg.data))
-        # if state_changed:
-        #     self.get_logger().info(f"State transitioned to: {self.state_manager.state}")
-        #     # Publish the new state
-        #     state_msg = String(data=self.state_manager.state)
-        #     self.state_change_pub.publish(state_msg)
-
-        #     # Publish the action ID if in RECOVERY state
-        #     if self.state_manager.state == "RECOVERY":
-        #         action_id = Int32(data=1)
-        #         self.action_id_pub.publish(action_id)
-        # else:
-        #     self.get_logger().info(f"No state transition for: {msg.data}")
+    def _cb_state_transition(self, msg: DetectionOutput):
+        state_changed = self.state_manager.transition(get_DR(msg.detection_result))
+        if state_changed:
+            self.get_logger().info(f"State transitioned to: {self.state_manager.state}")
+            # Publish the new state
+            self.state_change_pub.publish(String(data=self.state_manager.state))
+            self.action_id_pub.publish(Int32(data=msg.action_id))
+        else:
+            self.get_logger().info(
+                f"No state transition because detection result is `{msg.detection_result}`"
+            )
 
 
 def main(args=None):
