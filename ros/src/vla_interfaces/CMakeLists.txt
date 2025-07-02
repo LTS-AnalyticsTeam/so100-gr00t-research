@@ -14,6 +14,7 @@ find_package(rosidl_default_generators REQUIRED)
 # Generate interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ImagePair.msg"
+  "msg/DetectionOutput.msg"
   DEPENDENCIES std_msgs sensor_msgs
 )
 

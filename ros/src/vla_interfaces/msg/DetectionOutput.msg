@@ -1,0 +1,3 @@
+string detection_result
+uint32 action_id
+string reason

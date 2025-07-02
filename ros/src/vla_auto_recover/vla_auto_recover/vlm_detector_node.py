@@ -2,16 +2,11 @@
 
 import rclpy
 from rclpy.node import Node
-from ros.build.vla_auto_recover.build.lib.vla_auto_recover.processing.config.system_settings import (
-    CB_InputIF,
-)
-from ros.build.vla_interfaces.ament_cmake_python.vla_interfaces.vla_interfaces import (
-    msg,
-)
-from vla_interfaces.msg import ImagePair
-from .processing.vlm_detector import VLMDetector
-from .processing.config.system_settings import State
-from .processing.config.prompt_settings import RUNNING_ACTION_ID
+from vla_auto_recover.processing.config.system_settings import CB_InputIF
+from vla_interfaces.msg import ImagePair, DetectionOutput
+from vla_auto_recover.processing.vlm_detector import VLMDetector
+from vla_auto_recover.processing.config.system_settings import State
+from vla_auto_recover.processing.config.prompt_settings import RUNNING_ACTION_ID
 from std_msgs.msg import String
 import threading
 import queue
@@ -33,7 +28,7 @@ class VLMDetectorNode(Node):
 
         # ------ Publishers ------
         self.detection_result_pub = self.create_publisher(
-            String, "/detection_result", 10
+            DetectionOutput, "/detection_output", 10
         )
 
         # ------ Subscribers ------

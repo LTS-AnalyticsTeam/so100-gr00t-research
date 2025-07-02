@@ -2,7 +2,9 @@
 
 import rclpy
 from rclpy.node import Node
-from .processing.vlm_detector import VLMDetector
+from vla_auto_recover.processing.state_manager import StateManager
+from vla_auto_recover.processing.config.system_settings import get_DR
+from vla_interfaces.msg import DetectionOutput
 from std_msgs.msg import Int32, String
 
 
@@ -12,22 +14,33 @@ class StateManagerNode(Node):
         super().__init__("state_manager")
 
         # ------ Publishers ------
-        self.state_change_pub = self.create_publisher(Int32, "/state_change", 10)
+        self.state_change_pub = self.create_publisher(String, "/state_change", 10)
         self.action_id_pub = self.create_publisher(Int32, "/action_id", 10)
 
         # ------ Subscribers ------
         self.detection_result_sub = self.create_subscription(
-            String, "/detection_result", self._cb_transition, 10
+            DetectionOutput, "/detection_output", self._cb_state_transition, 10
         )
 
         # ------ Timers ------
-        self.timer = self.create_timer(3.0, self._timer_state_logger)
+        # No timers needed for this node
 
-        self.vlm_detector = VLMDetector()
+        self.state_manager = StateManager()
 
-    def _cb_transition(self, msg: String): ...
+    def _cb_state_transition(self, msg: String):
+        state_changed = self.state_manager.transition(get_DR(msg.data))
+        # if state_changed:
+        #     self.get_logger().info(f"State transitioned to: {self.state_manager.state}")
+        #     # Publish the new state
+        #     state_msg = String(data=self.state_manager.state)
+        #     self.state_change_pub.publish(state_msg)
 
-    def _timer_state_logger(self): ...
+        #     # Publish the action ID if in RECOVERY state
+        #     if self.state_manager.state == "RECOVERY":
+        #         action_id = Int32(data=1)
+        #         self.action_id_pub.publish(action_id)
+        # else:
+        #     self.get_logger().info(f"No state transition for: {msg.data}")
 
 
 def main(args=None):

@@ -34,10 +34,17 @@ class StateManager:
     def transition(self, detection_result: ADR | RDR | VDR) -> None:
         """TRANSITIONSのシナリオに基づいて状態遷移を実行"""
         # 状態遷移の実行
+        prev_state = self.state
         trigger_name = detection_result.value
         transition_func = getattr(self, trigger_name)
         transition_func()
-        return None
+
+        if self.state == prev_state:
+            # 状態が変わらなかった場合は、False
+            return False
+        else:
+            # 状態が変わった場合は、True
+            return True
 
     @classmethod
     def print_mermaid(cls):

@@ -37,6 +37,18 @@ class VDR(Enum):
     UNSOLVED = "UNSOLVED"
 
 
+def get_DR(detection_result_str: str) -> ADR | RDR | VDR:
+    """Detection Resultを取得する"""
+    if detection_result_str in ADR.__members__:
+        return ADR[detection_result_str]
+    elif detection_result_str in RDR.__members__:
+        return RDR[detection_result_str]
+    elif detection_result_str in VDR.__members__:
+        return VDR[detection_result_str]
+    else:
+        raise ValueError(f"Invalid detection result: {detection_result_str}")
+
+
 CB_PREFIX = "CB_"
 
 
