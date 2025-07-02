@@ -31,11 +31,11 @@ isaac-gr00t-so100リポジトリでサーバーを立ち上げる必要がある
 python scripts/exe_policy_lerobot1.py
 
 # lerobot new version
-python scripts/exe_policy_lerobot2.py \
+python example/exe_policy_lerobot.py \
     --robot.type=so100_follower \
     --robot.port=/dev/ttyACM1 \
     --robot.id=white \
     --robot.cameras="{ center_cam: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30}, right_cam: {type: opencv, index_or_path: 2, width: 640, height: 480, fps: 30}}" \
     --policy_host=localhost \
-    --lang_instruction="move blocks from tray to matching dishes."
+    --lang_instruction="move blocks from tray to matching dishes." 
 ```
