@@ -284,9 +284,9 @@ class GR00TExecuter:
         
         # Step 1: Initialize the robot configuration
         # RobotConfigを正しく初期化（typeパラメータは使用しない）
-        from lerobot.common.robots.so100_follower import SO100Follower
+        from lerobot.common.robots.so100_follower import SO100FollowerConfig
         
-        self.robot_config = SO100Follower(
+        self.robot_config = SO100FollowerConfig(
             port="/dev/ttyACM1",
             id="white",
             cameras={}
@@ -299,7 +299,7 @@ class GR00TExecuter:
         self.robot.connect()
         
         # get camera keys from RobotConfig
-        camera_keys = ["center_came", "right_cam"]
+        camera_keys = ["center_cam", "right_cam"]
         print("camera_keys: ", camera_keys)
         robot_state_keys = list(self.robot._motors_ft.keys())
         print("robot_state_keys: ", robot_state_keys)

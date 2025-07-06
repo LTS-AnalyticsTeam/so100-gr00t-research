@@ -21,7 +21,7 @@ class VLMDetectorNode(Node):
         self.declare_parameters(
             namespace="",
             parameters=[
-                ("fps", 5.0),
+                ("fps", 1/5),
                 ("worker_num", 4),
             ],
         )
@@ -116,7 +116,13 @@ class VLMDetectorNode(Node):
                 action_id=self.action_id,
             )
             output_data = self.vlm_detector.call_CB(self.state, input_data)
-            self.q_detection_output.put(output_data.detection_result.value)
+            self.q_detection_output.put(output_data)
+            self.get_logger().info(
+                f"Get Detection Output: {output_data.detection_result.value}, "
+                f"Action ID: {output_data.action_id}, "
+                f"Reason: {output_data.reason}"
+            )
+
         except Exception as e:
             self.get_logger().error(f"Detection processing failed: {e}")
             return

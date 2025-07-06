@@ -56,21 +56,36 @@ class VLAControllerNode(Node):
         self.gr00t_executer.go_back_start_position()
         # タイマーをリセットして再開
         self.timer_exec_action.reset()  
+        self.get_logger().info("Action ID changed to: {}".format(self.action_id))
 
     def _timer_exec_action(self):
         try:
             image_pair = self.image_pair_queue.get_nowait()
         except queue.Empty:
-            return  # 画像がない場合は何もしない
+            self.get_logger().info("No image pair available in the queue")
+            return
 
         try:
-            self.gr00t_executer.act({
+            # ロボットの現在状態を取得
+            robot_observation = self.gr00t_executer.robot.get_observation()
+            
+            # 画像データとロボット状態を結合
+            observation_dict = {
                 "center_cam": imgmsg_to_ndarray(image_pair.center_cam),
                 "right_cam": imgmsg_to_ndarray(image_pair.right_cam),
-            })
+            }
+            
+            # ロボットの関節位置を追加
+            robot_state_keys = list(self.gr00t_executer.robot._motors_ft.keys())
+            for key in robot_state_keys:
+                observation_dict[key] = robot_observation[key]
+            
+            self.gr00t_executer.act(observation_dict)
+            self.get_logger().info("Successfully executed action")
+            
         except Exception as e:
             self.get_logger().error(f"Error during action execution: {e}")
-        
+    
         return None
 
     def destroy_node(self):

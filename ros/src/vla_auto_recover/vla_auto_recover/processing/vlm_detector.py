@@ -9,6 +9,7 @@ from .config import prompt_settings as ps
 from .config.system_settings import ADR, RDR, VDR, State
 from .config.system_settings import CB_InputIF, CB_OutputIF, CB_PREFIX
 
+ENV_FILE = "/workspace/ros/src/vla_auto_recover/config/.env"
 
 class BaseDetector:
 
@@ -54,8 +55,7 @@ class VLMDetector(BaseDetector):
     def _init_openai_client(self):
         """Initialize OpenAI client (Azure or OpenAI)"""
 
-        env_file = Path(__file__).parent.joinpath("config", ".env")
-        load_dotenv(env_file)
+        load_dotenv(ENV_FILE)
 
         use_azure = os.getenv("USE_AZURE_OPENAI", "false").lower() == "true"
 
