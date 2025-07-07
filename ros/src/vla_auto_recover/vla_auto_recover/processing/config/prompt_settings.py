@@ -1,6 +1,7 @@
 from .system_settings import State, ADR, RDR, VDR
 
 # ===========================================================================================
+ACTION_END_ID = -1
 RUNNING_ACTION_ID = 0
 RUNNING_LANGUAGE_INSTRUCTION = "move blocks from tray to matching dishes."
 

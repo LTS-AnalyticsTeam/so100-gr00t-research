@@ -6,6 +6,7 @@ from vla_auto_recover.processing.state_manager import StateManager
 from vla_auto_recover.processing.config.system_settings import get_DR
 from vla_interfaces.msg import DetectionOutput
 from std_msgs.msg import Int32, String
+from vla_auto_recover.processing.config.system_settings import State
 
 
 class StateManagerNode(Node):
@@ -38,6 +39,11 @@ class StateManagerNode(Node):
             self.get_logger().info(
                 f"No state transition because detection result is `{msg.detection_result}`"
             )
+
+        if self.state_manager.state == State.END.value:
+            self.get_logger().info("StateManagerNode shutting down")
+            self.destroy_node()
+            rclpy.shutdown()
 
 
 def main(args=None):

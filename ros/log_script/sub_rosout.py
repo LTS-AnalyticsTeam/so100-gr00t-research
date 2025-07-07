@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-python sub_rosout.py --node *
+python ros/log_script/sub_rosout.py --node *
 """
 
 import rclpy, sys
@@ -10,13 +10,23 @@ from typing import Literal
 
 NODES = ["camera", "vlm_detector", "state_manager", "vla_controller"]
 
+# Log level mapping from rcl_interfaces/msg/Log
+LOG_LEVELS = {
+    10: "DEBUG",
+    20: "INFO", 
+    30: "WARN",
+    40: "ERROR",
+    50: "FATAL"
+}
+
 def main(target_node_name):
     rclpy.init()
     ros_node = Node('rosout_tap')
     
     def cb(m: Log):
         if m.name == target_node_name:
-            print(m.msg)
+            level_name = LOG_LEVELS.get(m.level, f"UNKNOWN({m.level})")
+            print(f"[{level_name}] {m.msg}")
     
     ros_node.create_subscription(Log, '/rosout', cb, 10)
     rclpy.spin(ros_node)

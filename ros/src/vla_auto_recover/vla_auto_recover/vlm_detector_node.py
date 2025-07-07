@@ -10,7 +10,7 @@ from vla_auto_recover.processing.config.prompt_settings import RUNNING_ACTION_ID
 from std_msgs.msg import String
 import threading
 import queue
-
+import traceback
 
 class VLMDetectorNode(Node):
 
@@ -53,7 +53,7 @@ class VLMDetectorNode(Node):
         self.action_id = RUNNING_ACTION_ID
 
         # Thread-safe queues
-        self.q_image_pair = queue.Queue(maxsize=20)
+        self.q_image_pair = queue.Queue(maxsize=1)
         self.q_detection_output = queue.Queue()
 
         # Worker pool management
@@ -63,15 +63,24 @@ class VLMDetectorNode(Node):
 
     def _cb_sub_put_queue(self, msg: ImagePair):
         """Callback for the image subscription to put images into the queue."""
-        if not self.q_image_pair.full():
-            self.q_image_pair.put(msg)
-        else:
-            self.get_logger().error("Image queue is full, dropping image.")
+        try:
+            self.q_image_pair.put_nowait(msg)
+        except queue.Full:
+            self.q_image_pair.get()
+            self.q_image_pair.put_nowait(msg)
+        self.get_logger().info(
+            f"Image pair added to queue. Queue size: {self.q_image_pair.qsize()}"
+        )
 
     def _cb_sub_change_state(self, msg: String):
         old_state = self.state
         self.state = State(msg.data)
         self.get_logger().info(f"State changed: {old_state} -> {self.state}")
+        if self.state == State.END:
+            self.get_logger().info("Shutting down VLMDetectorNode")
+            self.destroy_node()
+            rclpy.shutdown()
+            
 
     def _cb_timer_start_detector_worker(self):
         """Start detection worker if queue has items and workers are available."""
@@ -93,6 +102,7 @@ class VLMDetectorNode(Node):
                     )
                     worker.start()
                     self.worker_pool.append(worker)
+                    self.get_logger().info(f"Started new worker: {worker.name}")
             except Exception as e:
                 self.get_logger().error(f"Failed to start worker: {e}")
 
@@ -124,6 +134,9 @@ class VLMDetectorNode(Node):
             )
 
         except Exception as e:
+            self.get_logger().error(
+                f"Exception in detection worker: {traceback.format_exc()}"
+            )
             self.get_logger().error(f"Detection processing failed: {e}")
             return
 
@@ -138,8 +151,12 @@ class VLMDetectorNode(Node):
                     reason=output.reason,
                 )
             )
-        else:
-            self.get_logger().info("No detection result to publish.")
+            self.get_logger().info("Published DetectionOutput message")
+            self.get_logger().info(
+                f"Detection Result: {output.detection_result.value}, "
+                f"Action ID: {output.action_id}, "
+                f"Reason: {output.reason}"
+            )
 
 
 def main(args=None):

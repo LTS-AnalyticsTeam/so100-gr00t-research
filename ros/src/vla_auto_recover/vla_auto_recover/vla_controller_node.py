@@ -9,8 +9,12 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from vla_interfaces.msg import ImagePair
 from vla_auto_recover.processing.vla_controller import GR00TExecuter
 from vla_auto_recover.processing.utils.image_convert import imgmsg_to_ndarray
+from vla_auto_recover.processing.config.prompt_settings import ACTION_END_ID
 
 class VLAControllerNode(Node):
+
+    DRY_RUN = True
+
     def __init__(self):
         super().__init__("vla_controller")
         self.gr00t_executer = GR00TExecuter()
@@ -45,20 +49,34 @@ class VLAControllerNode(Node):
         except queue.Full:
             self.image_pair_queue.get()
             self.image_pair_queue.put_nowait(msg)
+        self.get_logger().info(
+            f"Image pair added to queue. Queue size: {self.q_image_pair.qsize()}"
+        )
+
 
     def _cb_change_action(self, msg: Int32):
         """Handle incoming recovery action requests"""
-        # アクションのIDを変更する
-        self.action_id = msg.data
-        # タイマーを停止
-        self.timer_exec_action.cancel() 
-        # Start Positionに戻す
-        self.gr00t_executer.go_back_start_position()
-        # タイマーをリセットして再開
-        self.timer_exec_action.reset()  
-        self.get_logger().info("Action ID changed to: {}".format(self.action_id))
+        if msg.data == ACTION_END_ID:
+            self.get_logger().info("Received END_ID, shutting down VLAControllerNode")
+            self.destroy_node()
+            rclpy.shutdown()
+            return
+        else:        
+            # アクションのIDを変更する
+            self.action_id = msg.data
+            # タイマーを停止
+            self.timer_exec_action.cancel() 
+            # Start Positionに戻す
+            self.gr00t_executer.go_back_start_position()
+            # タイマーをリセットして再開
+            self.timer_exec_action.reset()  
+            self.get_logger().info("Action ID changed to: {}".format(self.action_id))
 
     def _timer_exec_action(self):
+        if self.DRY_RUN:
+            self.get_logger().info("Executing action callback without real action.")
+            return
+
         try:
             image_pair = self.image_pair_queue.get_nowait()
         except queue.Empty:
