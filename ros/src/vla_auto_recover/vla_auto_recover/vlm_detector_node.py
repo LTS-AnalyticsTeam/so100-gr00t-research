@@ -11,6 +11,7 @@ from std_msgs.msg import String
 import threading
 import queue
 import traceback
+from vla_interfaces.msg import SystemState
 
 class VLMDetectorNode(Node):
 
@@ -36,7 +37,7 @@ class VLMDetectorNode(Node):
             ImagePair, "/image/vlm", self._cb_sub_put_queue, 10
         )
         self.state_change_sub = self.create_subscription(
-            String, "/state_change", self._cb_sub_change_state, 10
+            SystemState, "/state_change", self._cb_sub_change_state, 10
         )
 
         # ------ Timers ------
@@ -53,7 +54,7 @@ class VLMDetectorNode(Node):
         self.action_id = RUNNING_ACTION_ID
 
         # Thread-safe queues
-        self.q_image_pair = queue.Queue(maxsize=1)
+        self.q_image_pair = queue.Queue(maxsize=3)
         self.q_detection_output = queue.Queue()
 
         # Worker pool management
@@ -74,7 +75,8 @@ class VLMDetectorNode(Node):
 
     def _cb_sub_change_state(self, msg: String):
         old_state = self.state
-        self.state = State(msg.data)
+        self.state = State(msg.state)
+        self.action_id = msg.action_id
         self.get_logger().info(f"State changed: {old_state} -> {self.state}")
         if self.state == State.END:
             self.get_logger().info("Shutting down VLMDetectorNode")

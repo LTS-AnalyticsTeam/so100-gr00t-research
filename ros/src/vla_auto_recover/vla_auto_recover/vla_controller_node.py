@@ -10,15 +10,16 @@ from vla_interfaces.msg import ImagePair
 from vla_auto_recover.processing.vla_controller import GR00TExecuter
 from vla_auto_recover.processing.utils.image_convert import imgmsg_to_ndarray
 from vla_auto_recover.processing.config.prompt_settings import ACTION_END_ID
+import traceback
 
 class VLAControllerNode(Node):
 
-    DRY_RUN = True
+    DRY_RUN = False
 
     def __init__(self):
         super().__init__("vla_controller")
         self.gr00t_executer = GR00TExecuter()
-        self.image_pair_queue = queue.Queue(maxsize=1)
+        self.q_image_pair = queue.Queue(maxsize=3)
         
         # ------ Publishers ------
         # No Publisher
@@ -45,10 +46,10 @@ class VLAControllerNode(Node):
         """Save incoming image pair to the queue"""
         # 画像ペアをキューに保存
         try:
-            self.image_pair_queue.put_nowait(msg)
+            self.q_image_pair.put_nowait(msg)
         except queue.Full:
-            self.image_pair_queue.get()
-            self.image_pair_queue.put_nowait(msg)
+            self.q_image_pair.get()
+            self.q_image_pair.put_nowait(msg)
         self.get_logger().info(
             f"Image pair added to queue. Queue size: {self.q_image_pair.qsize()}"
         )
@@ -78,7 +79,7 @@ class VLAControllerNode(Node):
             return
 
         try:
-            image_pair = self.image_pair_queue.get_nowait()
+            image_pair = self.q_image_pair.get_nowait()
         except queue.Empty:
             self.get_logger().info("No image pair available in the queue")
             return
@@ -103,7 +104,8 @@ class VLAControllerNode(Node):
             
         except Exception as e:
             self.get_logger().error(f"Error during action execution: {e}")
-    
+            self.get_logger().error(traceback.format_exc())
+
         return None
 
     def destroy_node(self):

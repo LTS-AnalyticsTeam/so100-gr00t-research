@@ -7,7 +7,7 @@ from vla_auto_recover.processing.config.system_settings import get_DR
 from vla_interfaces.msg import DetectionOutput
 from std_msgs.msg import Int32, String
 from vla_auto_recover.processing.config.system_settings import State
-
+from vla_interfaces.msg import SystemState
 
 class StateManagerNode(Node):
 
@@ -15,7 +15,7 @@ class StateManagerNode(Node):
         super().__init__("state_manager")
 
         # ------ Publishers ------
-        self.state_change_pub = self.create_publisher(String, "/state_change", 10)
+        self.state_change_pub = self.create_publisher(SystemState, "/state_change", 10)
         self.action_id_pub = self.create_publisher(Int32, "/action_id", 10)
 
         # ------ Subscribers ------
@@ -33,7 +33,7 @@ class StateManagerNode(Node):
         if state_changed:
             self.get_logger().info(f"State transitioned to: {self.state_manager.state}")
             # Publish the new state
-            self.state_change_pub.publish(String(data=self.state_manager.state))
+            self.state_change_pub.publish(SystemState(state=self.state_manager.state, action_id=msg.action_id))
             self.action_id_pub.publish(Int32(data=msg.action_id))
         else:
             self.get_logger().info(
