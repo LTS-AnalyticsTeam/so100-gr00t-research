@@ -48,6 +48,9 @@ class VLMDetector(BaseDetector):
     """Visual Language Model for anomaly detection and action suggestion"""
 
     MODEL = "gpt-4.1"
+    # MODEL = "gpt-4o"
+
+    REFER_IMAGES = False
 
     def __init__(self):
         self.client, self.use_azure = self._init_openai_client()
@@ -85,62 +88,32 @@ class VLMDetector(BaseDetector):
 
     def CB_RUNNING(self, input_data: CB_InputIF) -> CB_OutputIF:
         """Detect anomalies and suggest actions using VLM"""
-        openai_images = [
-            self._transform_image_for_openai(img) for img in input_data.images
-        ]
-
-        # messagesの作成
-        content = []
         prompt = ps.CB_RUNNING_PROMPT.format(
             language_instruction=ps.RUNNING_LANGUAGE_INSTRUCTION,
             recovery_action_list=json.dumps(
                 ps.RECOVERY_ACTION_LIST, indent=2, ensure_ascii=False
             ),
         )
-        content.append({"type": "text", "text": prompt})
-        for img in openai_images:
-            content.append({"type": "image_url", "image_url": {"url": img}})
-
-        print(f"prompt: \n{prompt}")
-        response = self.client.chat.completions.create(
-            model=self.MODEL,
-            messages=[{"role": "user", "content": content}],
-            response_format={
-                "type": "json_schema",
-                "json_schema": ps.CB_RUNNING_JSON_SCHEMA,
-            },
+        response = self._CB(
+            prompt=prompt,
+            observation_images=input_data.images,
+            json_schema=ps.CB_RUNNING_JSON_SCHEMA,
         )
         output_data = self._parse_CB_RUNNING_response(response)
         return output_data
 
     def CB_RECOVERY(self, input_data: CB_InputIF) -> CB_OutputIF:
         """Check if the system is recovering from an anomaly"""
-        openai_images = [
-            self._transform_image_for_openai(img) for img in input_data.images
-        ]
-
         # Get action instruction based on action_id
-        language_instruction = ps.RECOVERY_ACTION_LIST[input_data.action_id][
-            "language_instruction"
-        ]
-
+        language_instruction = ps.RECOVERY_ACTION_LIST[input_data.action_id]["language_instruction"]
         # messagesの作成
-        content = []
         prompt = ps.CB_RECOVERY_PROMPT.format(
             language_instruction=language_instruction,
         )
-        content.append({"type": "text", "text": prompt})
-        for img in openai_images:
-            content.append({"type": "image_url", "image_url": {"url": img}})
-
-        print(f"prompt: \n{prompt}")
-        response = self.client.chat.completions.create(
-            model=self.MODEL,
-            messages=[{"role": "user", "content": content}],
-            response_format={
-                "type": "json_schema",
-                "json_schema": ps.CB_RECOVERY_JSON_SCHEMA,
-            },
+        response = self._CB(
+            prompt=prompt,
+            observation_images=input_data.images,
+            json_schema=ps.CB_RECOVERY_JSON_SCHEMA,
         )
         output_data = self._parse_CB_RECOVERY_response(response)
         # CB_RECOVERYではアクションを変えない。
@@ -149,35 +122,60 @@ class VLMDetector(BaseDetector):
 
     def CB_VERIFICATION(self, input_data: CB_InputIF) -> CB_OutputIF:
         """Verify if the anomaly has been resolved"""
-        openai_images = [
-            self._transform_image_for_openai(img) for img in input_data.images
-        ]
-
-        # messagesの作成
-        content = []
         prompt = ps.CB_VERIFICATION_PROMPT.format(
             recovery_action_list=json.dumps(
                 ps.RECOVERY_ACTION_LIST, indent=2, ensure_ascii=False
             ),
         )
-        content.append({"type": "text", "text": prompt})
-        for img in openai_images:
-            content.append({"type": "image_url", "image_url": {"url": img}})
-
-        print(f"prompt: \n{prompt}")
-        response = self.client.chat.completions.create(
-            model=self.MODEL,
-            messages=[{"role": "user", "content": content}],
-            response_format={
-                "type": "json_schema",
-                "json_schema": ps.CB_VERIFICATION_JSON_SCHEMA,
-            },
+        response = self._CB(
+            prompt=prompt,
+            observation_images=input_data.images,
+            json_schema=ps.CB_VERIFICATION_JSON_SCHEMA,
         )
         output_data = self._parse_CB_VERIFICATION_response(response)
         return output_data
 
     def CB_END(self, input_data: CB_InputIF) -> CB_OutputIF:
         return CB_OutputIF()
+    
+    def _CB(self, prompt: str, observation_images: list[np.ndarray], json_schema: dict) -> None:
+        """Placeholder for CB method"""
+        print(f"prompt: \n{prompt}")
+        openai_images = [
+            ps.transform_np_image_to_openai(img) for img in observation_images
+        ]        
+        # messagesの作成
+        content = []
+        # promptの追加
+        content.append({"type": "text", "text": prompt})
+
+        # 観測画像の追加
+        for i, img in enumerate(openai_images, start=1):
+            content.append({"type": "text", "text": f"Observation Image No.{i}"})
+            content.append({"type": "image_url", "image_url": {"url": img}})
+
+        # 参照画像の追加
+        if self.REFER_IMAGES:
+            for i, img in enumerate(ps.NORMAL_IMAGES, start=1):
+                content.append({"type": "text", "text": f"Normal Reference Image No.{i}"})
+                content.append({"type": "image_url", "image_url": {"url": img}})
+        
+            for i, img in enumerate(ps.COMPLETION_IMAGES, start=1):
+                content.append({"type": "text", "text": f"Completion Reference Image No.{i}"})
+                content.append({"type": "image_url", "image_url": {"url": img}})
+            
+                    
+            content.append({"type": "text", "text": "`Observation Images`と`Reference Images`の比較に基づいて、判断を行ってください。"})
+
+        response = self.client.chat.completions.create(
+            model=self.MODEL,
+            messages=[{"role": "user", "content": content}],
+            response_format={
+                "type": "json_schema",
+                "json_schema": json_schema,
+            },
+        )
+        return response
 
     def _parse_CB_RUNNING_response(self, response) -> CB_OutputIF:
         """Parse and validate anomaly detection response"""
@@ -296,8 +294,3 @@ class VLMDetector(BaseDetector):
             )
             return CB_OutputIF(detection_result=None, action_id=None, reason=None)
 
-    def _transform_image_for_openai(self, image: np.ndarray) -> str:
-        """Convert OpenCV image to base64 format for OpenAI API"""
-        _, buffer = cv2.imencode(".jpg", image)
-        base64_image = base64.b64encode(buffer).decode("utf-8")
-        return f"data:image/jpeg;base64,{base64_image}"

@@ -1,4 +1,19 @@
 from .system_settings import State, ADR, RDR, VDR
+import cv2
+import base64
+import numpy as np
+from pathlib import Path
+
+def transform_np_image_to_openai(image: np.ndarray) -> str:
+    """Convert OpenCV image to base64 format for OpenAI API"""
+    _, buffer = cv2.imencode(".jpg", image)
+    base64_image = base64.b64encode(buffer).decode("utf-8")
+    return f"data:image/jpeg;base64,{base64_image}"
+
+def transform_image_path_to_openai(image_path: Path) -> str:
+    """Convert OpenCV image to base64 format for OpenAI API"""
+    image = cv2.imread(str(image_path))
+    return transform_np_image_to_openai(image)
 
 # ===========================================================================================
 ACTION_END_ID = -1
@@ -12,8 +27,27 @@ RECOVERY_ACTION_LIST = {
 }  # fmt: skip
 
 ACTION_LIST = {RUNNING_ACTION_ID: {"class": "NORMAL ACTION", "situation": "Moving blocks to matching dishes", "language_instruction": RUNNING_LANGUAGE_INSTRUCTION}} | RECOVERY_ACTION_LIST
+# ===========================================================================================
+REFERENCE_IMAGE_DIR = Path("/workspace/ros/src/vla_auto_recover/vla_auto_recover/processing/config/reference_image")
+IMAGE_START_CENTER_CAM = transform_image_path_to_openai(REFERENCE_IMAGE_DIR.joinpath("start", "center_cam.png"))
+IMAGE_START_RIGHT_CAM = transform_image_path_to_openai(REFERENCE_IMAGE_DIR.joinpath("start", "right_cam.png"))
+IMAGE_MIDDLE_CENTER_CAM = transform_image_path_to_openai(REFERENCE_IMAGE_DIR.joinpath("middle", "center_cam.png"))
+IMAGE_MIDDLE_RIGHT_CAM = transform_image_path_to_openai(REFERENCE_IMAGE_DIR.joinpath("middle", "right_cam.png"))
+IMAGE_END_CENTER_CAM = transform_image_path_to_openai(REFERENCE_IMAGE_DIR.joinpath("end", "center_cam.png"))
+IMAGE_END_RIGHT_CAM = transform_image_path_to_openai(REFERENCE_IMAGE_DIR.joinpath("end", "right_cam.png"))
 
 
+NORMAL_IMAGES = [
+    IMAGE_START_CENTER_CAM,
+    IMAGE_START_RIGHT_CAM,
+    IMAGE_MIDDLE_CENTER_CAM,
+    IMAGE_MIDDLE_RIGHT_CAM,
+]
+
+COMPLETION_IMAGES = [
+    IMAGE_END_CENTER_CAM,
+    IMAGE_END_RIGHT_CAM,
+]
 
 
 # ===========================================================================================

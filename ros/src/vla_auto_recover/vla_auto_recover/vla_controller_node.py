@@ -64,14 +64,14 @@ class VLAControllerNode(Node):
             return
         else:        
             # アクションのIDを変更する
-            self.action_id = msg.data
+            self.gr00t_executer.action_id = msg.data
             # タイマーを停止
             self.timer_exec_action.cancel() 
             # Start Positionに戻す
             self.gr00t_executer.go_back_start_position()
             # タイマーをリセットして再開
             self.timer_exec_action.reset()  
-            self.get_logger().info("Action ID changed to: {}".format(self.action_id))
+            self.get_logger().info(f"Action ID changed to: {self.gr00t_executer.action_id}, {self.gr00t_executer.lang_instruction}")
 
     def _timer_exec_action(self):
         if self.DRY_RUN:
@@ -100,7 +100,7 @@ class VLAControllerNode(Node):
                 observation_dict[key] = robot_observation[key]
             
             self.gr00t_executer.act(observation_dict)
-            self.get_logger().info("Successfully executed action")
+            self.get_logger().info(f"Successfully executed action: {self.gr00t_executer.action_id}, {self.gr00t_executer.lang_instruction}")
             
         except Exception as e:
             self.get_logger().error(f"Error during action execution: {e}")

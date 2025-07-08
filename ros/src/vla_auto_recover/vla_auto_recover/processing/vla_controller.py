@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from io import BytesIO
 from typing import Any, Callable, Dict
-
+from pathlib import Path
 import torch
 import zmq
 
@@ -289,7 +289,8 @@ class GR00TExecuter:
         self.robot_config = SO100FollowerConfig(
             port="/dev/ttyACM1",
             id="white",
-            cameras={}
+            cameras={},
+            calibration_dir=Path("/workspace/calibration/robots/so100_follower")
         )
 
         logging.info(f"Robot configuration: {self.robot_config}")
