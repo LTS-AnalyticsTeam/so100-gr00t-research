@@ -12,6 +12,7 @@ import threading
 import queue
 import traceback
 from vla_interfaces.msg import SystemState
+import time
 
 class VLMDetectorNode(Node):
 
@@ -146,18 +147,23 @@ class VLMDetectorNode(Node):
         """Callback to publish detection results at a fixed rate."""
         if not self.q_detection_output.empty():
             output = self.q_detection_output.get()
+            # 現在のタイムスタンプを取得（ナノ秒単位）
+            timestamp = int(time.time_ns())
+            
             self.detection_result_pub.publish(
                 DetectionOutput(
                     detection_result=output.detection_result.value,
                     action_id=output.action_id,
                     reason=output.reason,
+                    timestamp=timestamp,
                 )
             )
             self.get_logger().info("Published DetectionOutput message")
             self.get_logger().info(
                 f"Detection Result: {output.detection_result.value}, "
                 f"Action ID: {output.action_id}, "
-                f"Reason: {output.reason}"
+                f"Reason: {output.reason}, "
+                f"Timestamp: {timestamp}"
             )
 
 

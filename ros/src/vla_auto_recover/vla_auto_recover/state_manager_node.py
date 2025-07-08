@@ -27,8 +27,22 @@ class StateManagerNode(Node):
         # No timers needed for this node
 
         self.state_manager = StateManager()
+        # タイムスタンプベースの状態更新制御のための最新更新時間
+        self.latest_update_timestamp = 0
 
     def _cb_state_transition(self, msg: DetectionOutput):
+        # タイムスタンプが最新の更新時間より新しい場合のみ状態を更新
+        if msg.timestamp <= self.latest_update_timestamp:
+            self.get_logger().info(
+                f"Ignoring outdated detection result. "
+                f"Message timestamp: {msg.timestamp}, "
+                f"Latest update timestamp: {self.latest_update_timestamp}"
+            )
+            return
+        
+        # 最新の更新時間を更新
+        self.latest_update_timestamp = msg.timestamp
+        
         state_changed = self.state_manager.transition(get_DR(msg.detection_result))
         if state_changed:
             self.get_logger().info(f"State transitioned to: {self.state_manager.state}")
