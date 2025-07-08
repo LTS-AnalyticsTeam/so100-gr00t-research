@@ -50,7 +50,8 @@ class VLMDetector(BaseDetector):
     MODEL = "gpt-4.1"
     # MODEL = "gpt-4o"
 
-    REFER_IMAGES = False
+    USE_REFERENCE_IMAGES = False
+    USE_OBJECT_DETECTION = True
 
     def __init__(self):
         self.client, self.use_azure = self._init_openai_client()
@@ -140,7 +141,7 @@ class VLMDetector(BaseDetector):
     
     def _CB(self, prompt: str, observation_images: list[np.ndarray], json_schema: dict) -> None:
         """Placeholder for CB method"""
-        print(f"prompt: \n{prompt}")
+
         openai_images = [
             ps.transform_np_image_to_openai(img) for img in observation_images
         ]        
@@ -155,7 +156,7 @@ class VLMDetector(BaseDetector):
             content.append({"type": "image_url", "image_url": {"url": img}})
 
         # 参照画像の追加
-        if self.REFER_IMAGES:
+        if self.USE_REFERENCE_IMAGES:
             for i, img in enumerate(ps.NORMAL_IMAGES, start=1):
                 content.append({"type": "text", "text": f"Normal Reference Image No.{i}"})
                 content.append({"type": "image_url", "image_url": {"url": img}})
@@ -166,7 +167,14 @@ class VLMDetector(BaseDetector):
             
                     
             content.append({"type": "text", "text": "`Observation Images`と`Reference Images`の比較に基づいて、判断を行ってください。"})
+        
+        if self.USE_OBJECT_DETECTION:
+            # 物体検出を行う
+            object_detection_result = self._object_detection(observation_images)
+            content.append({"type": "text", "text": f"Object Detection Result: {object_detection_result}"})
+            content.append({"type": "text", "text": "Please use the object detection result to make your decision."})
 
+        print(f"content: \n{[c for c in content if c['type'] == 'text']}")
         response = self.client.chat.completions.create(
             model=self.MODEL,
             messages=[{"role": "user", "content": content}],
@@ -175,7 +183,28 @@ class VLMDetector(BaseDetector):
                 "json_schema": json_schema,
             },
         )
+        print(f"response: \n{response.choices[0].message.content}")
         return response
+
+    def _object_detection(self, observation_images: list[np.ndarray]) -> str:
+        """Detect objects in the observation images using VLM"""
+
+        center_image = ps.transform_np_image_to_openai(observation_images[0])        
+        content = [
+            {"type": "text", "text": ps.OBJECT_DETECTION_PROMPT},
+            {"type": "image_url", "image_url": {"url": center_image}},
+            {"type": "text", "text": json.dumps(ps.OBJECT_DETECTION_SCHEMA)},
+            {"type": "text", "text": "出力する前に状況について深く考察してから出力してください。"},
+            {"type": "text", "text": "途中経過の思考も出力しつつ、最終的な出力はJSON Schemaに従ってください。"},
+        ]
+        print(f"content: \n{[c for c in content if c['type'] == 'text']}")
+        response = self.client.chat.completions.create(
+            model=self.MODEL,
+            messages=[{"role": "user", "content": content}],
+        )
+        print(f"response: \n{response.choices[0].message.content}")
+        return response.choices[0].message.content
+
 
     def _parse_CB_RUNNING_response(self, response) -> CB_OutputIF:
         """Parse and validate anomaly detection response"""

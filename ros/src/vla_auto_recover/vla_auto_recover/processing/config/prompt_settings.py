@@ -22,8 +22,8 @@ RUNNING_LANGUAGE_INSTRUCTION = "move blocks from tray to matching dishes."
 
 # ===========================================================================================
 RECOVERY_ACTION_LIST = {
-    1: {"class": "ANOMALY RECOVERY ACTION", "situation": "Misplaced blocks on different color dishes", "language_instruction": "Relocate any misplaced blocks to their matching dishes."},
-    2: {"class": "ANOMALY RECOVERY ACTION", "situation": "Stacked dish on the other dish", "language_instruction": "Lift the stacked dish and set it down on the table."},
+    1: {"class": "ANOMALY RECOVERY ACTION", "situation": "Misplaced blocks on different color dishes", "language_instruction": "Relocate every red block to the red dish and every blue block to the blue dish, correcting any placement errors."},
+    2: {"class": "ANOMALY RECOVERY ACTION", "situation": "Stacked dish on the other dish", "language_instruction": "Unstack the dishes and arrange them individually on the table."},
 }  # fmt: skip
 
 ACTION_LIST = {RUNNING_ACTION_ID: {"class": "NORMAL ACTION", "situation": "Moving blocks to matching dishes", "language_instruction": RUNNING_LANGUAGE_INSTRUCTION}} | RECOVERY_ACTION_LIST
@@ -80,7 +80,7 @@ action_id=0が問題なく実行できる場合は、detection_result=`NORMAL`, 
 """
 )
 
-# ===========================================================================================
+
 CB_RUNNING_JSON_SCHEMA = {
     "name": "AnomalyDetectionResult",
     "strict": True,
@@ -123,7 +123,7 @@ CB_RECOVERY_PROMPT = (
 """
 )
 
-# ===========================================================================================
+
 CB_RECOVERY_JSON_SCHEMA = {
     "name": "RecoveryStateResponse",
     "strict": True,
@@ -164,7 +164,6 @@ CB_VERIFICATION_PROMPT = (
 """
 )
 
-# ===========================================================================================
 CB_VERIFICATION_JSON_SCHEMA = {
     "name": "VerificationStateResponse",
     "strict": True,
@@ -190,3 +189,94 @@ CB_VERIFICATION_JSON_SCHEMA = {
         "additionalProperties": False,
     },
 }
+
+# ===========================================================================================
+OBJECT_DETECTION_PROMPT = """
+画像内の状態をJSON Schemaに従ってJSON形式で出力してください。
+赤の皿、青の皿、銀のトレーが存在しており、その上に、赤のブロックと青のブロックが載っています。
+
+ON_RED_DISH, ON_BLUE_DISH, ON_SILVER_TRAYの各フィールドは、各皿の上にあるブロックの数を示します。
+"""
+
+
+OBJECT_DETECTION_SCHEMA = {
+    "name": "DishBlockCountResponse",
+    "schema": {
+        "title": "Dish Block Count with Stack Flag",
+        "type": "object",
+        "properties": {
+            "ARE_DISHES_SEPARATE": {
+                "type": "boolean",
+                "description": "青い皿と赤い皿が離れて配置されているか記述する。離れている場合はtrue。",
+            },
+
+            # ── RED DISH ────────────────────────────────
+            "ON_RED_DISH": {
+                "type": "object",
+                "description": "赤い皿に載っているブロック数",
+                "properties": {
+                    "RED_BLOCK": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "赤ブロックの個数"
+                    },
+                    "BLUE_BLOCK": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "青ブロックの個数"
+                    }
+                },
+                "required": ["RED_BLOCK", "BLUE_BLOCK"],
+                "additionalProperties": False
+            },
+
+            # ── BLUE DISH ───────────────────────────────
+            "ON_BLUE_DISH": {
+                "type": "object",
+                "description": "青い皿に載っているブロック数",
+                "properties": {
+                    "RED_BLOCK": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "赤ブロックの個数"
+                    },
+                    "BLUE_BLOCK": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "青ブロックの個数"
+                    }
+                },
+                "required": ["RED_BLOCK", "BLUE_BLOCK"],
+                "additionalProperties": False
+            },
+
+            # ── SILVER TRAY ─────────────────────────────
+            "ON_SILVER_TRAY": {
+                "type": "object",
+                "description": "銀のトレイに載っているブロック数",
+                "properties": {
+                    "RED_BLOCK": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "赤ブロックの個数"
+                    },
+                    "BLUE_BLOCK": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "青ブロックの個数"
+                    }
+                },
+                "required": ["RED_BLOCK", "BLUE_BLOCK"],
+                "additionalProperties": False
+            }
+        },
+        "required": [
+            "ARE_DISHES_SEPARATE",
+            "ON_RED_DISH",
+            "ON_BLUE_DISH",
+            "ON_SILVER_TRAY"
+        ],
+        "additionalProperties": False
+    }
+}
+# ===========================================================================================
