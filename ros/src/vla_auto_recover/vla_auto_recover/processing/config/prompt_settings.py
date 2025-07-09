@@ -1,6 +1,7 @@
 from .system_settings import State, ADR, RDR, VDR
 import cv2
 import base64
+import json
 import numpy as np
 from pathlib import Path
 
@@ -22,8 +23,8 @@ RUNNING_LANGUAGE_INSTRUCTION = "move blocks from tray to matching dishes."
 
 # ===========================================================================================
 RECOVERY_ACTION_LIST = {
-    1: {"class": "ANOMALY RECOVERY ACTION", "situation": "Misplaced blocks on different color dishes", "language_instruction": "Relocate every red block to the red dish and every blue block to the blue dish, correcting any placement errors."},
-    2: {"class": "ANOMALY RECOVERY ACTION", "situation": "Stacked dish on the other dish", "language_instruction": "Unstack the dishes and arrange them individually on the table."},
+    1: {"class": "ANOMALY RECOVERY ACTION", "situation": "Stacked dish on the other dish", "language_instruction": "Unstack the dishes and arrange them individually on the table."},
+    2: {"class": "ANOMALY RECOVERY ACTION", "situation": "Misplaced blocks on different color dishes", "language_instruction": "Relocate every red block to the red dish and every blue block to the blue dish, correcting any placement errors."},
 }  # fmt: skip
 
 ACTION_LIST = {RUNNING_ACTION_ID: {"class": "NORMAL ACTION", "situation": "Moving blocks to matching dishes", "language_instruction": RUNNING_LANGUAGE_INSTRUCTION}} | RECOVERY_ACTION_LIST
@@ -55,11 +56,6 @@ GENERAL_PROMPT = f"""
 あなたは、ロボットアームに対して指令を出す役割を担っています。
 現在、<normal_action>{RUNNING_LANGUAGE_INSTRUCTION}<normal_action>を実行しています。
 ロボットアームが実行しているタスクは、トレイからブロックを同じ色の皿に移動するタスクに関するものです。
-
-# 正常状態とは
-正常な状態とは、trayにblockがあること、blockが同じ色のdishに正しく配置されていることです。
-blockがtrayにあることは異常なことではなく、初期状態です。
-
 \n
 """
 
@@ -69,6 +65,7 @@ CB_RUNNING_PROMPT = (
     + """
 <recovery_action_list>
 {recovery_action_list}
+解除すべきタスクの優先度順に1,2,...と番号をつけています。複数のタスクがある場合は、優先度の高いものから順に実行してください。
 </recovery_action_list>
 
 与えられた画像は、ロボットアームの現在の状態を示します。
@@ -151,6 +148,7 @@ CB_VERIFICATION_PROMPT = (
     + """
 <recovery_action_list>
 {recovery_action_list}
+解除すべきタスクの優先度順に1,2,...と番号をつけています。複数のタスクがある場合は、優先度の高いものから順に実行してください。
 </recovery_action_list>
 
 与えられた画像は、復帰行動後の状態を示します。
@@ -191,13 +189,93 @@ CB_VERIFICATION_JSON_SCHEMA = {
 }
 
 # ===========================================================================================
+
+DEFINITIONS_OF_STATE= """
+# 正常な状態とは
+正常な状態とは、trayにblockがあること、blockが同じ色のdishに正しく配置されていることです。
+blockがtrayにあることは異常なことではなく、初期状態です。
+
+具体的には次のような状態は正常と言えます。
+- 皿が分離して配置されている。
+- 赤い皿の上には赤いブロックのみが載っている
+- 青い皿の上には青いブロックのみが載っている
+- 銀色のトレイは、ブロックが乗っていても乗っていなくても良い。
+
+正常な場合のJSONの例を以下に示します。
+```json
+{
+    "ARE_DISHES_SEPARATE": true,
+    "ON_RED_DISH": {
+        "RED_BLOCK": ">=0",
+        "BLUE_BLOCK": "==0"
+    },
+    "ON_BLUE_DISH": {
+        "RED_BLOCK": "==0",
+        "BLUE_BLOCK": ">=0"
+    },
+    "ON_SILVER_TRAY": {
+        "RED_BLOCK": ">=0",
+        "BLUE_BLOCK": ">=0"
+    }
+}
+```
+
+# 異常の状態とは？
+異常な状態とは、trayにblockがない、またはblockが異なる色のdishに不適切に配置されていることを指します。
+具体的には次のような状態は異常と言えます。
+- 皿が重なって配置されている。
+- 赤い皿の上に青いブロックが載っている
+- 青い皿の上に赤いブロックが載っている
+- 銀色のトレイにブロックがない。
+異常な場合のJSONの例を以下に示します。
+```json
+{
+    "ARE_DISHES_SEPARATE": false,
+    "ON_RED_DISH": {
+        "RED_BLOCK": ">=0",
+        "BLUE_BLOCK": ">=1"
+    },
+    "ON_BLUE_DISH": {
+        "RED_BLOCK": ">=1",
+        "BLUE_BLOCK": ">=0"
+    },
+    "ON_SILVER_TRAY": {
+        "RED_BLOCK": ">=0",
+        "BLUE_BLOCK": ">=0"
+    }
+}
+```
+
+# 完了の状態とは
+銀色のトレイにある、すべてのブロックが、赤い皿または青い皿に移動されている状態を指します。
+また、このとき皿とブロックの色が同じになるように配置されている必要があります。
+完了の状態のJSONの例を以下に示します。
+```json
+{
+    "ARE_DISHES_SEPARATE": true,
+    "ON_RED_DISH": {
+        "RED_BLOCK": ">=0",
+        "BLUE_BLOCK": "==0"
+    },
+    "ON_BLUE_DISH": {
+        "RED_BLOCK": "==0",
+        "BLUE_BLOCK": ">=0"
+    },
+    "ON_SILVER_TRAY": {
+        "RED_BLOCK": "==0",
+        "BLUE_BLOCK": "==0"
+    }
+}
+```
+"""
+
+# ===========================================================================================
 OBJECT_DETECTION_PROMPT = """
 画像内の状態をJSON Schemaに従ってJSON形式で出力してください。
 赤の皿、青の皿、銀のトレーが存在しており、その上に、赤のブロックと青のブロックが載っています。
 
 ON_RED_DISH, ON_BLUE_DISH, ON_SILVER_TRAYの各フィールドは、各皿の上にあるブロックの数を示します。
 """
-
 
 OBJECT_DETECTION_SCHEMA = {
     "name": "DishBlockCountResponse",

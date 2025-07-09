@@ -169,6 +169,9 @@ class VLMDetector(BaseDetector):
             content.append({"type": "text", "text": "`Observation Images`と`Reference Images`の比較に基づいて、判断を行ってください。"})
         
         if self.USE_OBJECT_DETECTION:
+            # 状態定義の追加
+            content.append({"type": "text", "text": ps.DEFINITIONS_OF_STATE})
+            
             # 物体検出を行う
             object_detection_result = self._object_detection(observation_images)
             content.append({"type": "text", "text": f"Object Detection Result: {object_detection_result}"})
