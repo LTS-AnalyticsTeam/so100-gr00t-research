@@ -13,6 +13,7 @@ __camera_images__
 gr00t-model
 outputs
 datasets
+datasets/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

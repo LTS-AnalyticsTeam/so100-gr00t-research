@@ -1,7 +1,7 @@
 {
-  "name": "ros2_lerobot_dev",
-  "dockerComposeFile": "../ROS2_environment/docker-compose.yml",
-  "service": "ros2_dev",
+  "name": "vla_auto_recover_gui",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "vla_auto_recover-gui",
   "mounts": [
     "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
   ],
