@@ -5,6 +5,8 @@ from transitions.extensions import GraphMachine
 
 class StateManager:
 
+    state: str
+
     STATES = [
         State.RUNNING.value,
         State.RECOVERY.value,

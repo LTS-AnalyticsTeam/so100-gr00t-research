@@ -75,7 +75,7 @@ class VLMDetectorNode(Node):
             f"Image pair added to queue. Queue size: {self.q_image_pair.qsize()}"
         )
 
-    def _cb_sub_change_state(self, msg: String):
+    def _cb_sub_change_state(self, msg: SystemState):
         old_state = self.state
         self.state = State(msg.state)
         self.action_id = msg.action_id

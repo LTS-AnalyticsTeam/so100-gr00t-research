@@ -10,6 +10,7 @@ from vla_auto_recover.processing.config.system_settings import State
 from vla_interfaces.msg import SystemState
 import traceback
 
+
 class StateManagerNode(Node):
 
     def __init__(self):
@@ -17,7 +18,6 @@ class StateManagerNode(Node):
 
         # ------ Publishers ------
         self.state_change_pub = self.create_publisher(SystemState, "/state_change", 10)
-        self.action_id_pub = self.create_publisher(Int32, "/action_id", 10)
 
         # ------ Subscribers ------
         self.detection_result_sub = self.create_subscription(
@@ -41,16 +41,19 @@ class StateManagerNode(Node):
                     f"Latest update timestamp: {self.latest_update_timestamp}"
                 )
                 return
-            
+
             # 最新の更新時間を更新
             self.latest_update_timestamp = msg.timestamp
-            
+
             state_changed = self.state_manager.transition(get_DR(msg.detection_result))
             if state_changed:
-                self.get_logger().info(f"State transitioned to: {self.state_manager.state}")
+                self.get_logger().info(
+                    f"State transitioned to: {self.state_manager.state}"
+                )
                 # Publish the new state
-                self.state_change_pub.publish(SystemState(state=self.state_manager.state, action_id=msg.action_id))
-                self.action_id_pub.publish(Int32(data=msg.action_id))
+                self.state_change_pub.publish(
+                    SystemState(state=self.state_manager.state, action_id=msg.action_id)
+                )
             else:
                 self.get_logger().info(
                     f"No state transition because detection result is `{msg.detection_result}`"
@@ -60,7 +63,7 @@ class StateManagerNode(Node):
                 self.get_logger().info("StateManagerNode shutting down")
                 self.destroy_node()
                 rclpy.shutdown()
-                
+
         except Exception as e:
             self.get_logger().error(f"Error in state transition callback: {e}")
             self.get_logger().debug(traceback.format_exc())
