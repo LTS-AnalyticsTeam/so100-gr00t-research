@@ -277,18 +277,12 @@ class Gr00tRobotInferenceClient:
         return action_dict
 
 
-@dataclass
-class EvalConfig:
-    robot: RobotConfig  # the robot to use
-    policy_host: str = "localhost"  # host of the gr00t server
-    policy_port: int = 5555  # port of the gr00t server
-    action_horizon: int = 16  # number of actions to execute from the action chunk
-    lang_instruction: str = "Grab pens and place into pen holder."
-    play_sounds: bool = False  # whether to play sounds
-    timeout: int = 60  # timeout in seconds
 
 
 class GR00TExecuter:
+
+    IS_LOCAL = False
+    REMOTE_SERVER = "74.226.200.235"
 
     def __init__(self):
         init_logging()
@@ -320,7 +314,7 @@ class GR00TExecuter:
         print(f"記録した開始位置: {self.start_position}")
 
         # Configuration parameters
-        self.policy_host = "localhost"
+        self.policy_host = "localhost" if self.IS_LOCAL else  self.REMOTE_SERVER
         self.policy_port = 5555
         self.action_horizon = 16
         self.play_sounds = False

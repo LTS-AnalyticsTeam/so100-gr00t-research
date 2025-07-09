@@ -240,8 +240,8 @@ def main(interval=0.1, period_sec=60, output_dir=str(CAMRERA_DIR)):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Camera Saver Example")
-    parser.add_argument("--interval", type=float, default=0.1, help="Capture interval in seconds")
-    parser.add_argument("--period_sec", type=int, default=60, help="Total capture period in seconds")
+    parser.add_argument("--interval", type=float, default=1, help="Capture interval in seconds")
+    parser.add_argument("--period_sec", type=int, default=10, help="Total capture period in seconds")
     parser.add_argument("--output_dir", type=str, default=str(CAMRERA_DIR), help="Output directory for saved images")
     args = parser.parse_args()
     main(args.interval, args.period_sec, args.output_dir)

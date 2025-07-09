@@ -45,6 +45,9 @@ class VLAControllerNode(Node):
         # ------ Timers ------
         self.timer_exec_action = self.create_timer(1.0, self._timer_exec_action)
 
+         # 最初の判断が決まるまで待機
+        time.sleep(20)
+
     def _cb_timer_save_image(self, msg: ImagePair):
         """Save incoming image pair to the queue"""
         # 画像ペアをキューに保存

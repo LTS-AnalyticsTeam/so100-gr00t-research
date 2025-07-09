@@ -31,6 +31,7 @@ services:
     environment:
       - ROS_DOMAIN_ID=42
       - DISPLAY=:1
+    command: /bin/bash
     network_mode: host
     stdin_open: true
     tty: true
