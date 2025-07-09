@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from dotenv import load_dotenv
 import numpy as np
+from datetime import datetime
 from .config import prompt_settings as ps
 from .config.system_settings import ADR, RDR, VDR, State
 from .config.system_settings import CB_InputIF, CB_OutputIF, CB_PREFIX
@@ -52,9 +53,14 @@ class VLMDetector(BaseDetector):
 
     USE_REFERENCE_IMAGES = False
     USE_OBJECT_DETECTION = True
+    DEBUG_MODE = False  # デバッグモードのフラグ
+    DEBUG_SAVE_DIR = Path("/workspace/debug_images")  # デバッグ画像保存ディレクトリ
 
     def __init__(self):
         self.client, self.use_azure = self._init_openai_client()
+        # デバッグ用ディレクトリの作成
+        if self.DEBUG_MODE:
+            self.DEBUG_SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
     def _init_openai_client(self):
         """Initialize OpenAI client (Azure or OpenAI)"""
@@ -139,9 +145,32 @@ class VLMDetector(BaseDetector):
     def CB_END(self, input_data: CB_InputIF) -> CB_OutputIF:
         return CB_OutputIF()
     
+    def _save_debug_images(self, observation_images: list[np.ndarray], prefix: str = "debug") -> None:
+        """デバッグモード時にカメラ観測画像をPNGファイルとして保存する"""
+        if not self.DEBUG_MODE:
+            return
+        
+        # タイムスタンプを取得
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # ミリ秒まで
+        
+        for i, image in enumerate(observation_images):
+            # ファイル名を生成
+            filename = f"{prefix}_{timestamp}_camera_{i:02d}.png"
+            filepath = self.DEBUG_SAVE_DIR / filename
+            
+            # numpy arrayをPNGファイルとして保存
+            success = cv2.imwrite(str(filepath), image)
+            
+            if success:
+                print(f"Debug image saved: {filepath}")
+            else:
+                print(f"Failed to save debug image: {filepath}")
+
     def _CB(self, prompt: str, observation_images: list[np.ndarray], json_schema: dict) -> None:
         """Placeholder for CB method"""
-
+        # デバッグモード時にカメラ観測画像を保存する
+        self._save_debug_images(observation_images, "observation")
+        
         openai_images = [
             ps.transform_np_image_to_openai(img) for img in observation_images
         ]        

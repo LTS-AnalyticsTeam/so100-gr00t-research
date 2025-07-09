@@ -21,13 +21,20 @@ ACTION_END_ID = -1
 RUNNING_ACTION_ID = 0
 RUNNING_LANGUAGE_INSTRUCTION = "move blocks from tray to matching dishes."
 
-# ===========================================================================================
 RECOVERY_ACTION_LIST = {
     1: {"class": "ANOMALY RECOVERY ACTION", "situation": "Stacked dish on the other dish", "language_instruction": "Unstack the dishes and arrange them individually on the table."},
-    2: {"class": "ANOMALY RECOVERY ACTION", "situation": "Misplaced blocks on different color dishes", "language_instruction": "Relocate every red block to the red dish and every blue block to the blue dish, correcting any placement errors."},
+    2: {"class": "ANOMALY RECOVERY ACTION", "situation": "Misplaced blocks on different color dishes", "language_instruction": "Correct any misplaced blocks on red and blue dishes."},
 }  # fmt: skip
 
+# Default settings
+RECOVERY_LANGUAGE_INSTRUCTION_LIST = {
+    1: "Lift the stacked dish and set it down on the table.",
+    2: "Relocate any misplaced blocks to their matching dishes.",
+}
+
 ACTION_LIST = {RUNNING_ACTION_ID: {"class": "NORMAL ACTION", "situation": "Moving blocks to matching dishes", "language_instruction": RUNNING_LANGUAGE_INSTRUCTION}} | RECOVERY_ACTION_LIST
+LANGUAGE_INSTRUCTION_LIST = {RUNNING_ACTION_ID: RUNNING_LANGUAGE_INSTRUCTION} | RECOVERY_LANGUAGE_INSTRUCTION_LIST
+
 # ===========================================================================================
 REFERENCE_IMAGE_DIR = Path("/workspace/ros/src/vla_auto_recover/vla_auto_recover/processing/config/reference_image")
 IMAGE_START_CENTER_CAM = transform_image_path_to_openai(REFERENCE_IMAGE_DIR.joinpath("start", "center_cam.png"))
@@ -116,6 +123,10 @@ CB_RECOVERY_PROMPT = (
 異常状態の復帰のために`language_instruction`を実行しているのですが、この行動はすでに完了していると思いますか？
 完了済みの場合は、detection_result=`RECOVERED`を指定してください。
 未完了の場合には、detection_result=`UNRECOVERED`を指定してください。
+
+【重要な条件】
+- 銀色トレーには何個のブロックが乗っていても問題ではありません。
+
 出力はJSON Schemaに従ってください。
 """
 )
