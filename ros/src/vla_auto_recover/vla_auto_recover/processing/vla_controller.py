@@ -29,7 +29,11 @@ from lerobot.common.utils.utils import (
     log_say,
 )
 
-from vla_auto_recover.processing.config.prompt_settings import RUNNING_ACTION_ID, ACTION_LIST
+from vla_auto_recover.processing.config.prompt_settings import (
+    RUNNING_ACTION_ID,
+    LANGUAGE_INSTRUCTION_LIST,
+)
+
 
 class TorchSerializer:
     @staticmethod
@@ -80,7 +84,9 @@ class BaseInferenceServer:
         """
         return {"status": "ok", "message": "Server is running"}
 
-    def register_endpoint(self, name: str, handler: Callable, requires_input: bool = True):
+    def register_endpoint(
+        self, name: str, handler: Callable, requires_input: bool = True
+    ):
         """
         Register a new endpoint to the server.
 
@@ -119,7 +125,9 @@ class BaseInferenceServer:
 
 
 class BaseInferenceClient:
-    def __init__(self, host: str = "localhost", port: int = 5555, timeout_ms: int = 15000):
+    def __init__(
+        self, host: str = "localhost", port: int = 5555, timeout_ms: int = 15000
+    ):
         self.context = zmq.Context()
         self.host = host
         self.port = port
@@ -255,12 +263,17 @@ class Gr00tRobotInferenceClient:
         so that we can send it to the robot
         """
         concat_action = np.concatenate(
-            [np.atleast_1d(action_chunk[f"action.{key}"][idx]) for key in self.modality_keys],
+            [
+                np.atleast_1d(action_chunk[f"action.{key}"][idx])
+                for key in self.modality_keys
+            ],
             axis=0,
         )
         assert len(concat_action) == len(self.robot_state_keys), "this should be size 6"
         # convert the action to dict[str, float]
-        action_dict = {key: concat_action[i] for i, key in enumerate(self.robot_state_keys)}
+        action_dict = {
+            key: concat_action[i] for i, key in enumerate(self.robot_state_keys)
+        }
         return action_dict
 
 
@@ -275,22 +288,20 @@ class EvalConfig:
     timeout: int = 60  # timeout in seconds
 
 
-
-
 class GR00TExecuter:
 
     def __init__(self):
         init_logging()
-        
+
         # Step 1: Initialize the robot configuration
         # RobotConfigを正しく初期化（typeパラメータは使用しない）
         from lerobot.common.robots.so100_follower import SO100FollowerConfig
-        
+
         self.robot_config = SO100FollowerConfig(
             port="/dev/ttyACM1",
             id="white",
             cameras={},
-            calibration_dir=Path("/workspace/calibration/robots/so100_follower")
+            calibration_dir=Path("/workspace/calibration/robots/so100_follower"),
         )
 
         logging.info(f"Robot configuration: {self.robot_config}")
@@ -298,7 +309,7 @@ class GR00TExecuter:
         # Step 2: Initialize the robot
         self.robot = make_robot_from_config(self.robot_config)
         self.robot.connect()
-        
+
         # get camera keys from RobotConfig
         camera_keys = ["center_cam", "right_cam"]
         print("camera_keys: ", camera_keys)
@@ -307,7 +318,7 @@ class GR00TExecuter:
         observation = self.robot.get_observation()
         self.start_position = {key: observation[key] for key in robot_state_keys}
         print(f"記録した開始位置: {self.start_position}")
-        
+
         # Configuration parameters
         self.policy_host = "localhost"
         self.policy_port = 5555
@@ -315,16 +326,16 @@ class GR00TExecuter:
         self.play_sounds = False
         self.timeout = 60
         self.action_id = RUNNING_ACTION_ID
-        
+
         self.policy = Gr00tRobotInferenceClient(
             host=self.policy_host,
             port=self.policy_port,
             camera_keys=camera_keys,
             robot_state_keys=robot_state_keys,
         )
-        
+
     def act(self, observation_dict: Dict[str, np.ndarray]) -> None:
-        
+
         # get the realtime image
         print("observation_dict", observation_dict.keys())
         action_chunk = self.policy.get_action(observation_dict, self.lang_instruction)
@@ -334,7 +345,7 @@ class GR00TExecuter:
             print("action_dict", action_dict.keys())
             self.robot.send_action(action_dict)
             time.sleep(0.02)  # Implicitly wait for the action to be executed
-    
+
     def go_back_start_position(self):
         """Return to the start position"""
         print(f"Going back to start position: {self.start_position}")
@@ -343,5 +354,4 @@ class GR00TExecuter:
 
     @property
     def lang_instruction(self):
-        return ACTION_LIST[self.action_id]["language_instruction"]
-
+        return LANGUAGE_INSTRUCTION_LIST[self.action_id]

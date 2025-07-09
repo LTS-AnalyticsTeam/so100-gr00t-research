@@ -14,6 +14,7 @@ import traceback
 from vla_interfaces.msg import SystemState
 import time
 
+
 class VLMDetectorNode(Node):
 
     def __init__(self):
@@ -23,8 +24,8 @@ class VLMDetectorNode(Node):
         self.declare_parameters(
             namespace="",
             parameters=[
-                ("fps", 1/5),
-                ("worker_num", 4),
+                ("fps", 1 / 5),
+                ("worker_num", 8),
             ],
         )
 
@@ -83,7 +84,6 @@ class VLMDetectorNode(Node):
             self.get_logger().info("Shutting down VLMDetectorNode")
             self.destroy_node()
             rclpy.shutdown()
-            
 
     def _cb_timer_start_detector_worker(self):
         """Start detection worker if queue has items and workers are available."""
@@ -149,7 +149,7 @@ class VLMDetectorNode(Node):
             output = self.q_detection_output.get()
             # 現在のタイムスタンプを取得（ナノ秒単位）
             timestamp = int(time.time_ns())
-            
+
             self.detection_result_pub.publish(
                 DetectionOutput(
                     detection_result=output.detection_result.value,
