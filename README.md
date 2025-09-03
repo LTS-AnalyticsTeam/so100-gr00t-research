@@ -7,19 +7,18 @@
 
 
 ## 目次
-1. 背景 / 目的
-2. 全体アーキテクチャ概要
-3. セットアップ
-4. ビルド & 起動手順 (ROS2 ワークスペース)
-5. ROS2 ワークスペース構造
-6. ログ / デバッグ
+1. 全体アーキテクチャ概要
+2. セットアップ
+3. ビルド & 起動手順 (ROS2 ワークスペース)
+4. ROS2 ワークスペース構造
+5. ログ / デバッグ
 
 ---
 
-## 2. 全体アーキテクチャ概要
-| レイヤ | 説明 |
+## 1. 全体アーキテクチャ概要
+| Node | 役割 | 説明 |
 |--------|------|
-| camera node | 入力 | カメラ / センサ / (将来: ロボット状態) |
+| camera node | 入力 | カメラ / センサ |
 | vlm_detector | 認識 | VLM によるシーン・状態推定 |
 | state_manager | 状態管理 | StateManager が状態遷移図に基づき現在状態を更新 |
 | vla_controller | 制御 | Controller が次アクションを決定・実行 |
@@ -32,9 +31,9 @@
 
 ---
 
-## 3. セットアップ
+## 2. セットアップ
 
-### 3.1 Docker環境の立ち上げ
+### 2.1 Docker環境の立ち上げ
 ```bash
 docker-compose build vla_auto_recover-cli
 docker-compose up -d vla_auto_recover-cli
@@ -42,25 +41,25 @@ docker attach vla_auto_recover_cli
 ```
 
 
-### 3.2 SO100 ARM
-ハードウエアとしてSO-100 ARMを利用した。下記、サイトを参考にセットアップを行う。
+### 2.2 SO100 ARM
+ハードウェアとして SO-100 ARM を利用。以下を参考にセットアップする。
 - [TheRobotStudio/SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100)
 - [SO-ARM101 Installation](https://huggingface.co/docs/lerobot/so101)
 
 
-### 3.3 Lerobotのインストール
-SO-100 ARMを動かすために、Lerobotを利用した。下記URLを参考にインストールを行う。
+### 2.3 Lerobotのインストール
+SO-100 ARM を制御するために Lerobot を使用。以下を参考にインストールする。
 - [Lerobot Installation](https://huggingface.co/docs/lerobot/installation)
 このプロジェクトは lerobot コミット `1ee2ca5c2627eab05940452472d876d0d4e73d1f` を利用。  
 ROS からパッケージ解決される必要があるため `pip install -e .` は避ける。
 
-### 3.4 GR00Tサーバの立ち上げ
-このリポジトリに従ってGR00Tサーバーを立ち上げる。
+### 2.4 GR00Tサーバーの立ち上げ
+以下のリポジトリに従って GR00T サーバーを起動する。
 - [Isaac-GR00T](https://github.com/NVIDIA/Isaac-GR00T/tree/main)
 
 ---
 
-## 4. ビルド & 起動手順 (ROS2 ワークスペース)
+## 3. ビルド & 起動手順 (ROS2 ワークスペース)
 
 環境変数ファイル作成 (`ros/config/.env`):
 ```bash
@@ -84,14 +83,14 @@ bash run_all_nodes.sh
 
 ---
 
-## 5. ROS2 ワークスペース構造
+## 4. ROS2 ワークスペース構造
 ```
 ros/
 	src/
 		vla_auto_recover/        # 制御・リカバリロジック
 		vla_interfaces/          # カスタムメッセージ / サービス
 	run_all_nodes.sh             # ノード一括起動スクリプト
-    write_graph_nodes.sh         # トピックグラフ生成スクリプト
+	write_graph_nodes.sh         # トピックグラフ生成スクリプト
 	config/.env                  # 環境変数設定
 	log_script/
 		sub_rosout.py            # ログ購読ユーティリティ
@@ -99,7 +98,7 @@ ros/
 
 ---
 
-## 6. ログ / デバッグ
+## 5. ログ / デバッグ
 個別ログ購読:
 ```bash
 python ros/log_script/sub_rosout.py --node camera
