@@ -61,6 +61,7 @@ ROS からパッケージ解決される必要があるため `pip install -e .`
 
 
 ### 2.5 LerobotとGR00Tの動作確認
+SO-100 ARM デバイスへのアクセス権を付与する。
 ``` bash
 sudo chmod 666 /dev/ttyACM0
 sudo chmod 666 /dev/ttyACM1
