@@ -67,7 +67,7 @@ sudo chmod 666 /dev/ttyACM0
 sudo chmod 666 /dev/ttyACM1
 ```
 
-テレオペによって、Lerobotが動くことを確認するコマンド
+テレオペレーション（リーダーの SO-100 ARM を利用して、フォロワーアームを動かすこと）によってLerobotが動くことを確認する。
 ``` bash
 python -m lerobot.teleoperate \
     --robot.type=so100_follower \
@@ -80,7 +80,7 @@ python -m lerobot.teleoperate \
     --display_data=true
 ```
 
-LerobotからGR00Tモデルが動くことを確認するスクリプト
+LerobotからGR00Tモデルが単体で動くことを確認する。
 ``` bash
 python scripts/exe_policy_lerobot.py \
     --robot.type=so100_follower \
@@ -113,8 +113,6 @@ bash run_all_nodes.sh
 ```
 
 
-
-
 ## 4. ROS2 ワークスペース構造
 ```
 ros/
@@ -127,7 +125,6 @@ ros/
 	log_script/
 		sub_rosout.py            # ログ購読ユーティリティ
 ```
-
 
 
 ## 5. ログ / デバッグ
