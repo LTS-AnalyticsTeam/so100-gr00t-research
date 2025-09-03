@@ -1,0 +1,4 @@
+string detection_result
+uint32 action_id
+string reason
+int64 timestamp

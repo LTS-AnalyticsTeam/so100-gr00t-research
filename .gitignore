@@ -4,7 +4,10 @@ src/data
 logs
 src/vlm_node/vlm_node/vlm_node.py.backup
 install
-
+.github
+__old__
+lerobot
+__camera_images__
 
 # Project specific definition
 gr00t-model

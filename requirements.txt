@@ -1,0 +1,11 @@
+matplotlib
+tqdm
+typing_extensions==4.12.1
+openai
+empy==3.3.4
+lark 
+pillow
+catkin_pkg 
+dotenv
+transitions
+pytest==7.4.4 # launch_pytestとの互換性の関係で、最新は8系だが7系を利用する。

@@ -1,0 +1,95 @@
+FROM --platform=linux/arm64 ghcr.io/sloretz/ros:jazzy-desktop-full
+
+##### ビルド引数・環境変数 ############################################
+ENV TZ=Asia/Tokyo \
+    VENV_DIR=/opt/venv \
+    QT_X11_NO_MITSHM=1 \
+    DISPLAY=:1 \
+    USER=root \
+    HOME=/root
+
+##### タイムゾーン設定 ################################################
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone
+
+##### システム更新 & 必要パッケージ ##################################
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        tigervnc-standalone-server xfce4 xfce4-goodies firefox \
+        openbox tint2 pcmanfm lxterminal x11vnc xvfb \
+        dbus-x11 x11-xserver-utils xfonts-base \
+        python3-pip python3-venv pipx \
+        git curl vim wget gedit terminator \
+        python3-catkin-pkg python3-dotenv \
+        libxcb-xinerama0 libxkbcommon-x11-0 libxcb-cursor0 \
+        novnc websockify python3-websockify \
+        libgl1 libglx-mesa0 libgl1-mesa-dri \
+        build-essential cmake pkg-config libffi-dev python3-dev \
+        ffmpeg graphviz nodejs npm \
+        && ln -s /usr/share/novnc/utils/novnc_proxy /usr/local/bin/novnc_proxy && \
+        apt-get autoremove -y && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/*
+
+##### Python 仮想環境 #################################################
+# システムパッケージの競合を避けるため、仮想環境を作成
+RUN python3 -m venv $VENV_DIR
+ENV PATH="/opt/venv/bin:$PATH"
+
+# pipを最新版にアップグレード
+RUN pip install --upgrade pip setuptools wheel
+
+# 基本的なPythonパッケージを先にインストール
+RUN pip install numpy scipy
+
+# LeRobotとその依存関係をインストール
+RUN git clone https://github.com/huggingface/lerobot.git /tmp/lerobot && \
+    cd /tmp/lerobot && \
+    pip install -e ".[feetech]"
+
+# requirements.txtをインストール
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# 途中でインストールされるargparseを削除（build-inのargparseを利用すべき）
+RUN pip uninstall -y argparse
+
+##### 追加の ROS 2 ツール ###########################################
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        ros-jazzy-rqt* ros-jazzy-rviz2 \
+        ros-jazzy-demo-nodes-cpp ros-jazzy-demo-nodes-py \
+        ros-jazzy-launch-pytest && \
+    rm -rf /var/lib/apt/lists/*
+
+##### VNC設定ディレクトリ ############################################
+RUN mkdir -p /root/.vnc
+
+##### スタートアップスクリプト #######################################
+COPY vnc_startup.sh /usr/local/bin/vnc_startup.sh
+RUN chmod +x /usr/local/bin/vnc_startup.sh
+
+##### ROS2 ワークスペース ###########################################
+WORKDIR /workspace
+
+# ROSワークスペースの設定
+RUN mkdir -p /workspace/ros_ws/src && \
+    echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc && \
+    echo "source /opt/venv/bin/activate" >> /root/.bashrc && \
+    echo "source /workspace/ros/install/setup.bash" >> /root/.bashrc && \
+    echo "export ROS_DOMAIN_ID=42" >> /root/.bashrc && \
+    echo "cd /workspace" >> /root/.bashrc
+
+# 環境変数を設定
+ENV PYTHONPATH="/opt/venv/lib/python3.12/site-packages:$PYTHONPATH"
+ENV ROS_DOMAIN_ID=42
+
+# エントリーポイントスクリプトを作成
+RUN echo '#!/bin/bash\nsource /opt/ros/jazzy/setup.bash\nsource /opt/venv/bin/activate\nexec "$@"' > /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+##### ポート公開 & エントリポイント #################################
+EXPOSE 5901 6080
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/bin/bash", "-c", "/usr/local/bin/vnc_startup.sh && tail -f /dev/null"]

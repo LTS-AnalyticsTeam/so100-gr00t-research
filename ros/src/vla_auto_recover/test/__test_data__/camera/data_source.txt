@@ -1,0 +1,4 @@
+source of test data
+- dataset: lt-s/rsj2025_train_resolve_any_anomalies_and_move_all_blocks_to_matching_dishes
+- dataset_url: https://huggingface.co/datasets/lt-s/rsj2025_train_resolve_any_anomalies_and_move_all_blocks_to_matching_dishes
+- episode: 37

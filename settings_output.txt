@@ -1,0 +1,50 @@
+==================================================
+         VLA AUTO RECOVER SETTINGS
+==================================================
+
+State Enum:
+------------------------------
+  • NORMAL
+  • RECOVERY
+  • VERIFICATION
+
+
+Action List:
+------------------------------
+  0: {'action_id': 0, 'class': 'NORMAL ACTION', 'language_instruction': 'move blocks from tray to matching dishes.'}
+  1: {'action_id': 1, 'class': 'ANOMALY RECOVERY ACTION', 'language_instruction': 'Relocate any misplaced blocks to their matching dishes.'}
+  2: {'action_id': 2, 'class': 'ANOMALY RECOVERY ACTION', 'language_instruction': 'Lift the stacked dish and set it down on the table.'}
+
+
+Anomaly Detection Prompt:
+------------------------------
+
+<action_instruction>
+{action_instruction}
+</action_instruction>
+
+<action_list>
+{action_list}
+</action_list>
+
+与えられた画像は、ロボットアームの現在の状態を示します。
+`action_instruction`を実行しているのですが、行動の実行に際して問題となる事象は画像の中に存在しますか？
+もし問題がある場合には、解決する方法を下記の`action_list`から選択してください。
+出力はJSON Schemaに従ってください。
+
+
+Recovery State Prompt:
+------------------------------
+
+<action_instruction>
+{action_instruction}
+</action_instruction>
+
+与えられた画像は、ロボットアームの現在の状態を示します。
+異常状態の回復のために`action_instruction`を実行しているのですが、この行動はすでに完了していると思いますか？
+もし問題がある場合には、解決する方法を下記の`action_list`から選択してください。
+出力はJSON Schemaに従ってください。
+
+
+JSON Schema for Anomaly Detection:
+------------------------------
