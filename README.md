@@ -13,11 +13,11 @@
 4. ROS2 ワークスペース構造
 5. ログ / デバッグ
 
----
+
 
 ## 1. 全体アーキテクチャ概要
 | Node | 役割 | 説明 |
-|--------|------|
+|------|--------|------|
 | camera node | 入力 | カメラ / センサ |
 | vlm_detector | 認識 | VLM によるシーン・状態推定 |
 | state_manager | 状態管理 | StateManager が状態遷移図に基づき現在状態を更新 |
@@ -29,7 +29,7 @@
 状態遷移モデル:  
 <p align="center"><img src="docs/system_state.svg" alt="状態遷移図" width="520"></p>
 
----
+
 
 ## 2. セットアップ
 
@@ -50,6 +50,7 @@ docker attach vla_auto_recover_cli
 ### 2.3 Lerobotのインストール
 SO-100 ARM を制御するために Lerobot を使用。以下を参考にインストールする。
 - [Lerobot Installation](https://huggingface.co/docs/lerobot/installation)
+
 このプロジェクトは lerobot コミット `1ee2ca5c2627eab05940452472d876d0d4e73d1f` を利用。  
 ROS からパッケージ解決される必要があるため `pip install -e .` は避ける。
 
@@ -57,7 +58,7 @@ ROS からパッケージ解決される必要があるため `pip install -e .`
 以下のリポジトリに従って GR00T サーバーを起動する。
 - [Isaac-GR00T](https://github.com/NVIDIA/Isaac-GR00T/tree/main)
 
----
+
 
 ## 3. ビルド & 起動手順 (ROS2 ワークスペース)
 
@@ -81,7 +82,6 @@ bash run_all_nodes.sh
 
 
 
----
 
 ## 4. ROS2 ワークスペース構造
 ```
@@ -96,7 +96,7 @@ ros/
 		sub_rosout.py            # ログ購読ユーティリティ
 ```
 
----
+
 
 ## 5. ログ / デバッグ
 個別ログ購読:
